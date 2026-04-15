@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SG Bus assistant</title>
+  <title>Kinetic Concierge</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -83,15 +82,6 @@
     .lang-switch button.active { background:#0f4fd6; color:#fff; }
     .bilingual { line-height:1.15; }
     .bilingual .cn { display:block; font-size:.78em; color:var(--muted); font-weight:700; margin-top:4px; }
-    .speech-settings { margin-top:16px; padding:18px; border-radius:22px; background:#f8fbff; border:1px solid #e3ecff; }
-    .speech-settings .title { font-size:18px; font-weight:800; color:#0f172a; }
-    .speech-grid { display:grid; gap:12px; margin-top:14px; }
-    .speech-row { display:flex; flex-direction:column; gap:6px; }
-    .speech-row label { font-size:13px; font-weight:800; color:#334155; }
-    .speech-row select { width:100%; border:1px solid #dbe4f3; background:white; border-radius:16px; padding:10px 12px; font-weight:700; color:#0f172a; }
-    .speech-note { margin-top:12px; font-size:13px; line-height:1.5; color:#64748b; }
-    .speech-status { margin-top:10px; display:flex; align-items:center; gap:8px; font-size:13px; color:#0f4fd6; font-weight:800; }
-    .speech-status .dot { width:8px; height:8px; border-radius:999px; background:#0f4fd6; display:inline-block; }
     @media (max-width: 1280px) {
       .app-shell { grid-template-columns: 280px minmax(0,1fr) 320px; }
       .top-nav { gap:20px; font-size:18px; }
@@ -107,7 +97,7 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div id="brand" class="brand">SG Bus assistant</div>
+      <div id="brand" class="brand">Kinetic Concierge</div>
       <nav class="top-nav hidden md:flex">
         <span id="nav-schedules" class="active">Schedules</span>
         <span id="nav-routes">Routes</span>
@@ -127,7 +117,7 @@
       <div class="panel p-5 mb-6">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-200">
-            <img src="https://69d215411362132535daf948.imgix.net/bus2.jpg?w=200&q=80&auto=format&fit=crop" alt="Concierge" class="w-full h-full object-cover">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80&auto=format&fit=crop" alt="Concierge" class="w-full h-full object-cover">
           </div>
           <div>
             <div id="concierge-title" class="font-extrabold text-xl text-slate-900">Concierge</div>
@@ -143,30 +133,6 @@
         <div class="sidebar-item"><span>★</span><span id="sidebar-saved">Saved Routes</span></div>
         <div class="sidebar-item"><span>🤖</span><span id="sidebar-ai">AI Assistant</span></div>
       </div>
-
-      <div class="speech-settings panel mt-6">
-        <div class="title">Speech settings | 语音设置</div>
-        <div class="speech-grid">
-          <div class="speech-row">
-            <label for="speech-engine-select">Engine / 引擎</label>
-            <select id="speech-engine-select">
-              <option value="auto">Auto | 自动</option>
-              <option value="web">Web Speech API</option>
-              <option value="azure">Azure Speech</option>
-            </select>
-          </div>
-          <div class="speech-row">
-            <label for="speech-lang-select">Recognition mode / 识别模式</label>
-            <select id="speech-lang-select">
-              <option value="zh">中文 (zh-CN)</option>
-              <option value="en">English (en-US)</option>
-              <option value="sg">Singapore English (en-SG, code-switching)</option>
-            </select>
-          </div>
-        </div>
-        <div id="speech-status" class="speech-status"><span class="dot"></span><span>Checking speech service…</span></div>
-        <div class="speech-note">Azure Speech supports en-SG, bilingual commands, and phrase hints from bus stop data. If Azure is unavailable, the app falls back to Web Speech.</div>
-      </div>
     </aside>
 
     <main class="main">
@@ -177,7 +143,7 @@
           <div class="hero-chat">
             <div class="grid grid-cols-[92px_minmax(0,1fr)] gap-4 items-center">
               <div class="flex flex-col items-center">
-                <img src="https://69d215411362132535daf948.imgix.net/bus2.jpg?w=200&q=80&auto=format&fit=crop" alt="AI" class="w-24 h-24 rounded-[22px] object-cover ring-2 ring-white shadow-lg">
+                <img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200&q=80&auto=format&fit=crop" alt="AI" class="w-24 h-24 rounded-[22px] object-cover ring-2 ring-white shadow-lg">
                 <button id="mic-btn" class="voice-btn -mt-4">🎤</button>
               </div>
               <div class="space-y-3">
@@ -225,12 +191,12 @@
 
       <div class="mt-8 panel p-6 flex items-center justify-between text-slate-500 font-bold tracking-[.14em] uppercase">
         <span><span class="status-dot mr-2 align-middle"></span>Concierge Active</span>
-        <span>v2.4.0-Zenmatrix</span>
+        <span>v2.4.0-kinetic</span>
       </div>
     </aside>
 
     <footer class="footer">
-      <div>© 2024 ZENMATRIX PTE LTD. BILINGUAL SUPPORT EN/CN.</div>
+      <div>© 2024 KINETIC CONCIERGE TRANSIT. BILINGUAL SUPPORT EN/CN.</div>
       <div class="flex gap-8">
         <span>PRIVACY POLICY</span>
         <span>TERMS OF SERVICE</span>
@@ -242,327 +208,48 @@
   <div id="toast" class="toast">Hello</div>
 
   <script>
-    // const apiBase = '';
-    // const defaultLocation = { lat: 1.2966, lon: 103.8520, label: 'Baker Street, London' };
-    // const demoDestination = { lat: 1.3575, lon: 103.9885, label: 'Changi Airport T2' };
-    // 1. 基础配置
-    const apiBase = ''; 
-    const defaultLocation = { lat: 1.2966, lon: 103.8520, label: 'Singapore' }; // 修正了 Label
+    const apiBase = '';
+    const defaultLocation = { lat: 1.2966, lon: 103.8520, label: 'Baker Street, London' };
     const demoDestination = { lat: 1.3575, lon: 103.9885, label: 'Changi Airport T2' };
 
-    // 2. 初始化图标 (放在最前面，防止 ReferenceError)
-    const userIcon = L.divIcon({ 
-        className: 'custom-pin', 
-        html: '<div style="background:#0f4fd6; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px rgba(15,79,214,0.5)"></div>',
-        iconSize: [20, 20], iconAnchor: [10, 10]
-    });
-
-    const destIcon = L.divIcon({ 
-        className: 'custom-pin', 
-        html: '<div style="background:#ef4444; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px rgba(239,68,68,0.5)"></div>',
-        iconSize: [20, 20], iconAnchor: [10, 10]
-    });
-
-    // 3. 定义全局 State
     const state = {
-        current: defaultLocation,
-        destination: demoDestination,
-        nearby: [],
-        markers: [],
-        routeOptions: [],
-        trip: null,
-        routeLayers: null // 记得在后面初始化它
+      current: defaultLocation,
+      destination: demoDestination,
+      nearby: [],
+      markers: [],
+      routeOptions: [],
+      trip: null,
     };
 
-    // 4. 初始化地图
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([defaultLocation.lat, defaultLocation.lon], 15);
     L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png', { detectRetina: true }).addTo(map);
 
-    // 5. 创建 Marker
+    const userIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:999px;background:#0f4fd6;border:3px solid white;box-shadow:0 0 0 4px rgba(15,79,214,.2)"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+    const destIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:999px;background:#cf1717;border:3px solid white;box-shadow:0 0 0 4px rgba(207,23,23,.18)"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+
     const userMarker = L.marker([state.current.lat, state.current.lon], { icon: userIcon }).addTo(map);
     const destMarker = L.marker([state.destination.lat, state.destination.lon], { icon: destIcon }).addTo(map);
-    
-    // 初始化路线图层组
-    state.routeLayers = L.featureGroup().addTo(map);
 
     const startJourneyBtn = document.getElementById('start-journey-btn');
     const micBtn = document.getElementById('mic-btn');
     const stopListEl = document.getElementById('stop-list');
     const routeCardsEl = document.getElementById('route-cards');
     const assistantStatus = document.getElementById('assistant-status');
-    const speechStatus = document.getElementById('speech-status');
-    const speechEngineSelect = document.getElementById('speech-engine-select');
-    const speechLangSelect = document.getElementById('speech-lang-select');
     const locationLabel = document.getElementById('location-label');
     const postcodeInput = document.getElementById('postcode-input');
     const toast = document.getElementById('toast');
     const langZhBtn = document.getElementById('lang-zh-btn');
     const langEnBtn = document.getElementById('lang-en-btn');
-    let speechSession = null;
-    let azureSpeechConfig = null;
-    let azurePhraseHints = [];
-    let speechSdkLoadPromise = null;
-
-    const STORAGE_KEYS = {
-      engine: 'sgbus.speech.engine',
-      lang: 'sgbus.speech.lang',
-    };
-
-    const speechState = {
-      enginePreference: localStorage.getItem(STORAGE_KEYS.engine) || 'auto',
-      mode: localStorage.getItem(STORAGE_KEYS.lang) || 'zh',
-      azureReady: false,
-      azureRegion: '',
-      azureToken: '',
-    };
-
-    const speechModeMap = {
-      zh: { web: 'zh-CN', azure: 'zh-CN' },
-      en: { web: 'en-US', azure: 'en-US' },
-      sg: { web: 'en-SG', azure: 'en-SG' },
-    };
-
-    function setSpeechStatus(message, tone = 'info') {
-      if (!speechStatus) return;
-      const dotColor = tone === 'error' ? '#dc2626' : tone === 'warn' ? '#d97706' : '#0f4fd6';
-      speechStatus.innerHTML = `<span class="dot" style="background:${dotColor}"></span><span>${message}</span>`;
-    }
-
-    function getSelectedSpeechLang() {
-      return speechLangSelect?.value || speechState.mode;
-    }
-
-    function getSelectedSpeechEngine() {
-      return speechEngineSelect?.value || speechState.enginePreference;
-    }
-
-    function setSpeechSelection(engine, mode) {
-      speechState.enginePreference = engine;
-      speechState.mode = mode;
-      if (speechEngineSelect) speechEngineSelect.value = engine;
-      if (speechLangSelect) speechLangSelect.value = mode;
-      localStorage.setItem(STORAGE_KEYS.engine, engine);
-      localStorage.setItem(STORAGE_KEYS.lang, mode);
-      setSpeechStatus(engine === 'azure'
-        ? `Azure Speech · ${mode === 'sg' ? 'en-SG / code-switching' : mode}`
-        : `Web Speech · ${mode === 'sg' ? 'en-SG (best effort)' : mode}`);
-    }
-
-    function setSpeechButtonsEnabled(enabled) {
-      if (micBtn) micBtn.disabled = !enabled;
-    }
-
-    function normalizeSpeechTranscript(text) {
-      return (text || '').trim().replace(/\s+/g, ' ');
-    }
-
-    async function loadSpeechConfig() {
-      try {
-        const res = await fetch(`${apiBase}/api/v1/speech/config`);
-        const cfg = await res.json();
-        azureSpeechConfig = cfg;
-        speechState.azureReady = (cfg.ready === true || cfg.enabled === true);
-        speechState.azureRegion = cfg.region || '';
-
-        if (speechState.azureReady) {
-          const region = cfg.region || 'unknown';
-          setSpeechStatus(`Azure Speech ready · ${region} · en-SG`, 'info');
-          if (speechState.enginePreference === 'auto') {
-            setSpeechSelection('azure', speechState.mode);
-          }
-          return;
-        }
-
-        const missing = Array.isArray(cfg.missing_fields) && cfg.missing_fields.length
-          ? `Missing: ${cfg.missing_fields.join(', ')}`
-          : 'Backend Azure Speech env vars are not set';
-        setSpeechStatus(`${cfg.message || 'Azure unavailable'} · ${missing}`, 'warn');
-      } catch (err) {
-        speechState.azureReady = false;
-        setSpeechStatus(`Speech config load failed: ${err?.message || err}`, 'error');
-      }
-    }
-
-    async function loadAzureSpeechToken() {
-      const res = await fetch(`${apiBase}/api/v1/speech/token`);
-      if (!res.ok) {
-        throw new Error(`token request failed: ${res.status}`);
-      }
-      return await res.json();
-    }
-
-    function stopSpeechSession() {
-      try {
-        if (speechSession?.stop) speechSession.stop();
-      } catch (err) {
-        console.warn('stop speech session failed', err);
-      }
-      speechSession = null;
-    }
-
-    function getSpeechSdk() {
-      return window.SpeechSDK || null;
-    }
-
-    function loadScriptOnce(src) {
-      return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-speech-sdk-src="${src}"]`);
-        if (existing) {
-          existing.addEventListener('load', () => resolve(), { once: true });
-          existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
-          if (window.SpeechSDK) resolve();
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.dataset.speechSdkSrc = src;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load ${src}`));
-        document.head.appendChild(script);
-      });
-    }
-
-    async function ensureSpeechSdkLoaded() {
-      if (getSpeechSdk()) return window.SpeechSDK;
-      if (!speechSdkLoadPromise) {
-        speechSdkLoadPromise = (async () => {
-          const candidates = [
-            'https://aka.ms/csspeech/jsbrowserpackageraw',
-            'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js',
-          ];
-          let lastErr = null;
-          for (const src of candidates) {
-            try {
-              await loadScriptOnce(src);
-              if (getSpeechSdk()) return window.SpeechSDK;
-            } catch (err) {
-              lastErr = err;
-            }
-          }
-          throw lastErr || new Error('Azure Speech SDK could not be loaded');
-        })();
-      }
-      return await speechSdkLoadPromise;
-    }
-
-    function createWebSpeechRecognizer() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) return null;
-      const recognition = new SR();
-      const selectedLang = getSelectedSpeechLang();
-      recognition.lang = speechModeMap[selectedLang]?.web || 'zh-CN';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      return recognition;
-    }
-
-    async function runAzureRecognition() {
-      const SpeechSDK = window.SpeechSDK; // 确保 SDK 已加载
-      if (!SpeechSDK) throw new Error('Azure Speech SDK not loaded');
-
-      const tokenData = await loadAzureSpeechToken();
-      const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(tokenData.token, tokenData.region);
-      
-      // 设置识别语言
-      const selectedLang = getSelectedSpeechLang();
-      speechConfig.speechRecognitionLanguage = speechModeMap[selectedLang]?.azure || 'en-SG';
-
-      // 默认音频输入（麦克风）
-      const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-
-      // 💡 关键修复：使用 new 关键字调用构造函数，而不是 fromConfig
-      let recognizer;
-      
-      if (selectedLang === 'sg') {
-          // 如果需要多语言自动检测 (可选)
-          const autoDetect = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(['en-SG', 'zh-CN']);
-          recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig, autoDetect);
-      } else {
-          // 标准单语言识别
-          recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-      }
-
-      if (SpeechSDK.PhraseListGrammar?.fromRecognizer) {
-        const phraseList = SpeechSDK.PhraseListGrammar.fromRecognizer(recognizer);
-        azurePhraseHints.slice(0, 100).forEach((phrase) => phraseList.addPhrase(phrase));
-      }
-
-      speechSession = recognizer;
-      setSpeechStatus(`Azure listening · ${selectedLang === 'sg' ? 'en-SG / bilingual' : selectedLang}`);
-
-      return new Promise((resolve, reject) => {
-        recognizer.recognizeOnceAsync((result) => {
-          try {
-            if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-              resolve(normalizeSpeechTranscript(result.text));
-            } else if (result.reason === SpeechSDK.ResultReason.NoMatch) {
-              reject(new Error('No speech recognized'));
-            } else {
-              reject(new Error(`Speech recognition ended with reason ${result.reason}`));
-            }
-          } finally {
-            recognizer.close();
-            speechSession = null;
-          }
-        }, (err) => {
-          try { recognizer.close(); } catch (_) {}
-          speechSession = null;
-          reject(err);
-        });
-      });
-    }
-
-    async function runWebSpeechRecognition() {
-      const recognizer = createWebSpeechRecognizer();
-      if (!recognizer) throw new Error('Speech recognition not supported');
-
-      return new Promise((resolve, reject) => {
-        speechSession = recognizer;
-        recognizer.onresult = (event) => {
-          const text = event.results[0][0].transcript;
-          resolve(normalizeSpeechTranscript(text));
-        };
-        recognizer.onerror = (event) => {
-          reject(new Error(event?.error || 'Web Speech error'));
-        };
-        recognizer.onend = () => {
-          speechSession = null;
-        };
-        try {
-          recognizer.start();
-        } catch (err) {
-          speechSession = null;
-          reject(err);
-        }
-      });
-    }
-
-    async function startSpeechRecognition() {
-      stopSpeechSession();
-      const preferred = getSelectedSpeechEngine();
-      const wantsAzure = preferred === 'azure' || (preferred === 'auto' && speechState.azureReady);
-
-      if (wantsAzure) {
-        try {
-          return await runAzureRecognition();
-        } catch (err) {
-          console.warn('Azure recognition failed, falling back to Web Speech', err);
-          setSpeechStatus(`Azure unavailable: ${err?.message || err} · falling back to Web Speech`, 'warn');
-        }
-      }
-
-      return await runWebSpeechRecognition();
-    }
+    let recognitionInstance = null;
 
     const i18n = {
       zh: {
-        brand: 'SG 巴士助手',
+        brand: 'Kinetic Concierge',
         schedules: '时刻表',
         routes: '路线',
         liveMap: '实时地图',
         accessibility: '无障碍',
-        concierge: '公交车助手',
+        concierge: '礼宾助手',
         online: '在线',
         startJourney: '开始行程',
         home: '首页',
@@ -612,7 +299,7 @@
         nearLabel: (label) => `附近：${label}`,
       },
       en: {
-        brand: 'SG Bus Assistant',
+        brand: 'Kinetic Concierge',
         schedules: 'Schedules',
         routes: 'Routes',
         liveMap: 'Live Map',
@@ -683,6 +370,9 @@
       stateLang.speech = lang;
       langZhBtn.classList.toggle('active', lang === 'zh');
       langEnBtn.classList.toggle('active', lang === 'en');
+      if (recognitionInstance) {
+        recognitionInstance.lang = lang === 'en' ? 'en-US' : 'zh-CN';
+      }
       document.getElementById('brand').textContent = t('brand');
       document.getElementById('nav-schedules').textContent = t('schedules');
       document.getElementById('nav-routes').textContent = t('routes');
@@ -695,7 +385,7 @@
       document.getElementById('sidebar-nearby').textContent = t('nearbyStops');
       document.getElementById('sidebar-saved').textContent = t('savedRoutes');
       document.getElementById('sidebar-ai').textContent = t('aiAssistant');
-      document.getElementById('pill-where').textContent = `${t('whereToGo')}｜${lang === 'zh' ? '去机场' : 'to the airport'}`;
+      document.getElementById('pill-where').textContent = `${t('whereToGo')}｜${lang === 'zh' ? '您要去哪里？' : 'Where do you want to go?'}`;
       document.getElementById('pill-arrival').textContent = `${t('whichBus')}｜${lang === 'zh' ? '哪辆巴士什么时候到？' : 'Which bus arrives when?'}`;
       document.getElementById('current-location-title').textContent = t('currentLocation');
       document.getElementById('current-location-subtitle').textContent = t('currentLocationSubtitle');
@@ -705,16 +395,6 @@
       document.querySelector('#assistant-status').textContent = t('ready');
       renderNearbyStops(state.nearby);
       renderRouteCards(state.routeOptions);
-    }
-
-    function applySpeechLanguageSelection(mode) {
-      const normalized = mode === 'sg' ? 'sg' : mode === 'en' ? 'en' : 'zh';
-      speechState.mode = normalized;
-      localStorage.setItem(STORAGE_KEYS.lang, normalized);
-      if (speechLangSelect) speechLangSelect.value = normalized;
-      setSpeechStatus(speechState.enginePreference === 'azure'
-        ? `Azure Speech · ${normalized === 'sg' ? 'en-SG / code-switching' : normalized}`
-        : `Web Speech · ${normalized === 'sg' ? 'en-SG (best effort)' : normalized}`);
     }
 
     function showToast(message) {
@@ -784,9 +464,7 @@
     async function setDestinationLocation(location, sourceText = '') {
       if (!location) return false;
       state.destination = location;
-      // destMarker.setLatLng([location.lat, location.lon]);
-      // 💡 确保更新坐标的同时，保持图标不变
-      destMarker.setLatLng([location.lat, location.lon]).setIcon(destIcon);
+      destMarker.setLatLng([location.lat, location.lon]);
       map.flyTo([location.lat, location.lon], 15, { duration: 0.5 });
       const suffix = sourceText ? ` (${sourceText})` : '';
       showToast(`${stateLang.ui === 'zh' ? '目的地已更新' : 'Destination updated'}: ${location.label}${suffix}`);
@@ -1017,39 +695,6 @@
       }
     }
 
-        // 在 state 中管理路线图层
-    state.routeLayers = L.featureGroup().addTo(map); 
-
-    function drawRoute(tripData) {
-        state.routeLayers.clearLayers(); // 清除旧路线
-        let allCoords = [];
-
-        if (tripData.mode === "direct") {
-            // 直达方案：绘制单段 Polyline
-            const opt = tripData.options[0];
-            if (opt && opt.polyline) {
-                const line = L.polyline(opt.polyline, {color: '#0f4fd6', weight: 6, opacity: 0.8}).addTo(state.routeLayers);
-                allCoords = opt.polyline;
-            }
-        } else if (tripData.mode === "transfer") {
-            // 转乘方案：绘制两段不同颜色的线
-            const opt = tripData.options[0];
-            if (opt.leg1.polyline) {
-                L.polyline(opt.leg1.polyline, {color: '#0f4fd6', weight: 6}).addTo(state.routeLayers);
-                allCoords = allCoords.concat(opt.leg1.polyline);
-            }
-            if (opt.leg2.polyline) {
-                // 第二段换个颜色区分
-                L.polyline(opt.leg2.polyline, {color: '#10b981', weight: 6, dashArray: '10, 10'}).addTo(state.routeLayers);
-                allCoords = allCoords.concat(opt.leg2.polyline);
-            }
-        }
-
-        // 自动缩放以适应全线
-        if (allCoords.length > 0) {
-            map.fitBounds(state.routeLayers.getBounds(), { padding: [50, 50] });
-        }
-    }
     async function planJourney() {
       try {
         setAssistantStatus(t('planning'));
@@ -1065,9 +710,6 @@
         });
         const data = await res.json();
         state.trip = data;
-
-        // 绘图
-        drawRoute(data);
 
         const summary = document.getElementById('trip-summary') || (() => {
           const el = document.createElement('div');
@@ -1100,8 +742,6 @@
         summary.innerHTML = `
           <div class="title">${stateLang.ui === 'zh' ? '最佳推荐路线' : 'Best route recommendation'}</div>
           <div class="desc">${best ? `${best.service} · ${best.from_name} → ${best.to_name} · ${best.live ? `${best.live.minutes} min, ${best.live.load}` : t('noLiveData')}` : (data.message || t('tryAnother'))}</div>
-          
-          <!--
           <div class="mt-4 grid gap-3 md:grid-cols-2 text-sm">
             <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
               <div class="font-bold text-slate-600">${t('startCoords')}</div>
@@ -1114,8 +754,6 @@
               <div class="font-mono text-slate-900">e_lon: ${Number(state.destination.lon).toFixed(6)}</div>
             </div>
           </div>
-          -->
-
           <div class="mt-4 rounded-2xl bg-blue-50 p-4 border border-blue-100">
             <div class="font-bold text-blue-800">${t('suggestedRoute')}</div>
             <div class="mt-1 text-slate-800">${best ? `${best.service} · ${best.from_name} → ${best.to_name}` : (data.message || t('tryAnother'))}</div>
@@ -1163,11 +801,25 @@
       }
     }
 
-    async function handleVoiceCommand() {
-      try {
+    function initVoice() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        micBtn.disabled = true;
+        micBtn.title = 'Speech recognition not supported';
+        return;
+      }
+      recognitionInstance = new SR();
+      recognitionInstance.lang = stateLang.speech === 'en' ? 'en-US' : 'zh-CN';
+      recognitionInstance.interimResults = false;
+      recognitionInstance.maxAlternatives = 1;
+
+      micBtn.addEventListener('click', () => {
+        try { recognitionInstance.start(); } catch (e) {}
         setAssistantStatus(t('listening'));
-        const text = await startSpeechRecognition();
-        if (!text) throw new Error('Empty transcript');
+      });
+
+      recognitionInstance.onresult = async (event) => {
+        const text = event.results[0][0].transcript;
         setAssistantStatus(t('heard', text));
         showToast(text);
         const destination = await resolveLocationFromText(text);
@@ -1180,34 +832,8 @@
         }
 
         await searchStops(text);
-      } catch (err) {
-        console.error(err);
-        setAssistantStatus(t('voiceError'));
-        showToast(t('voiceError'));
-      }
-    }
-
-    function initVoice() {
-      if (!window.SpeechRecognition && !window.webkitSpeechRecognition && !getSpeechSdk()) {
-        micBtn.disabled = true;
-        micBtn.title = 'Speech recognition not supported';
-        setSpeechStatus('No supported speech engine in this browser', 'error');
-        return;
-      }
-
-      micBtn.addEventListener('click', handleVoiceCommand);
-
-      if (speechEngineSelect) {
-        speechEngineSelect.addEventListener('change', () => {
-          setSpeechSelection(speechEngineSelect.value, getSelectedSpeechLang());
-        });
-      }
-
-      if (speechLangSelect) {
-        speechLangSelect.addEventListener('change', () => {
-          applySpeechLanguageSelection(speechLangSelect.value);
-        });
-      }
+      };
+      recognitionInstance.onerror = () => setAssistantStatus(t('voiceError'));
     }
 
     langZhBtn.addEventListener('click', () => setLanguage('zh'));
@@ -1220,11 +846,6 @@
     startJourneyBtn.addEventListener('click', planJourney);
 
     initVoice();
-    loadSpeechConfig().finally(() => {
-      setSpeechSelection(speechState.enginePreference, speechState.mode);
-      applySpeechLanguageSelection(speechState.mode);
-      setSpeechButtonsEnabled(true);
-    });
     setLanguage('zh');
     loadNearby(defaultLocation.lat, defaultLocation.lon);
     planJourney();

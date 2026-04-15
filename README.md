@@ -61,42 +61,12 @@ docker run -p 8000:8000 -e LTA_API_KEY=你的LTA_API_KEY kinetic-concierge
 
 ## 功能说明
 
-- **语音识别**：默认使用浏览器 Web Speech API，也可切换到 Azure Speech
+- **语音识别**：使用浏览器 Web Speech API
 - **语音播报**：使用浏览器 SpeechSynthesis
 - **定位**：使用浏览器 Geolocation API
 - **公交数据**：支持从 LTA DataMall 拉取公交到站与线路信息
 - **后端 Context Manager**：已通过 `/api/query`、`/api/context/location`、`/api/context/bus-routes` 与 `/api/context/bus-stop-routes` 接入
 - **路线缓存**：后端会自动缓存 Bus Routes 并按间隔定时刷新，前端优先读取缓存数据
-
-## Azure Speech 语音识别
-
-如果你希望启用 **Azure Speech Services**，前端左侧已经新增了一个语音设置卡片，可以在 **Web Speech / Azure Speech / Auto** 之间切换。
-
-### 支持能力
-
-- **en-SG**：可使用新加坡英语识别模式
-- **Code-switching**：支持中英夹杂场景，适合新加坡本地口语
-- **自定义词库**：后端会把全岛巴士站、路名、站号、线路号整理成 phrase hints，并下发给前端做识别强化
-
-### 需要配置的环境变量
-
-```bash
-set AZURE_SPEECH_KEY=你的AzureSpeechKey
-set AZURE_SPEECH_REGION=你的AzureSpeechRegion
-```
-
-### Azure 后台自定义词库建议
-
-建议你在 Azure Speech Studio / Custom Speech 里上传一份包含全岛巴士站的 Excel，字段可包括：
-
-- BusStopCode
-- Description
-- RoadName
-- ServiceNo
-
-这样可以进一步提高对站点名、道路名和巴士线路号的识别率，尤其是新加坡本地发音和中英混说场景。
-
-如果 Azure 没有配置，系统会自动回退到浏览器 Web Speech API。
 
 ## 环境变量
 
@@ -154,83 +124,9 @@ gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8000 --timeout
 
 如果你改了分支名，不是 `main`，记得把 workflow 里的分支名一起改掉。
 
-### 前端 index.html 怎么和 Azure Web App 后端连接？
-
-目前这个项目的最简单方式是：**前端和后端部署到同一个 Azure Web App**。
-
-- `main.py` 会直接返回 `index.html`
-- 浏览器访问 `/` 时，前端和后端天然同域
-- 这样 `index.html` 里的接口请求可以直接用相对路径，例如 `/api/v1/search-stops`
-
-所以在当前结构下，**你不需要单独把 `index.html` 再部署一次**。
-
-如果你以后想把前端拆出来，单独放到别的地方（比如 Azure Static Web Apps、Blob Static Website、Netlify），那就把 `index.html` 里的：
-
-```html
-<script>window.__API_BASE__='https://你的后端站点.azurewebsites.net';</script>
-```
-
-放在主脚本前面，然后前端会自动把接口请求打到这个后端地址。
-
-这种前后端分离模式下，还需要在后端保留 CORS 允许前端域名访问。现在 `main.py` 已经是 `allow_origins=["*"]`，开发阶段够用；如果正式上线，建议改成只允许你的前端域名。
-
-### 怎样测试前端？
-
-你可以分成 **本地测试** 和 **Azure 上测试** 两种方式：
-
-#### 1. 本地测试
-
-1. 启动后端：
-
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-2. 浏览器打开：
-
-```text
-http://127.0.0.1:8000
-```
-
-3. 重点验证这些前端能力：
-   - 页面是否正常加载
-   - 地图是否正常显示
-   - 语音按钮是否可点
-   - 邮编输入后是否会更新当前位置
-   - 点击“Start Journey”后是否能生成路线卡片
-   - 点击附近站点卡片是否能刷新路线和到站信息
-
-4. 如果接口有问题，可以直接访问这些地址查看返回值：
-   - `http://127.0.0.1:8000/health`
-   - `http://127.0.0.1:8000/api/v1/search-stops?q=Jurong`
-   - `http://127.0.0.1:8000/api/v1/nearby-stops?lat=1.2966&lon=103.8520`
-
-#### 2. Azure 上测试
-
-1. 部署到 Azure Web App 后，打开你的站点域名
-2. 按下面顺序测：
-   - 首页能否打开
-   - 浏览器控制台是否有报错
-   - `/health` 是否返回 `{"status":"ok"}`
-   - 输入邮编是否能更新位置
-   - 语音识别是否可用（不同浏览器支持不同）
-
-#### 3. 推荐的浏览器测试项
-
-- Chrome / Edge 优先测试，因为 Web Speech API 支持更好
-- 允许麦克风权限
-- 如果在 Azure 上测试，确认页面是通过 HTTPS 访问
-
-#### 4. 快速排查
-
-- 如果页面空白：先看浏览器 F12 控制台有没有 JS 报错
-- 如果站点加载慢：检查 `index.html` 里的外部 CDN（Leaflet、Tailwind、Google Fonts）是否能访问
-- 如果后端接口报 500：检查 Azure Web App 的日志和 `LTA_API_KEY` 是否已配置
-
 ## 后续接入建议
 
 1. 对接 Azure API Management 统一入口
 2. 增加真实公交 API / 地图 API / 天气 API
 3. 将更多前端查询能力接入后端 Context Manager
-4. 将语音识别迁移至 Azure Speech Streaming#   S G b u s 2 0 2 6 A P R  
- 
+4. 将语音识别迁移至 Azure Speech Streaming
