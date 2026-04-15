@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SG Bus assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --blue:#0f4fd6;
+      --blue-2:#1d5be8;
+      --bg:#f6f8fc;
+      --panel:#ffffff;
+      --text:#102033;
+      --muted:#64748b;
+      --border:#e7edf5;
+    }
+    html, body { height:100%; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    .app-shell { min-height:100vh; display:grid; grid-template-columns: 320px minmax(0, 1fr) 360px; grid-template-rows:auto 1fr auto; }
+    .topbar { grid-column:1 / -1; height:88px; display:flex; align-items:center; justify-content:space-between; padding:0 28px; border-bottom:1px solid var(--border); background:rgba(255,255,255,.8); backdrop-filter: blur(10px); }
+    .brand { font-size:32px; font-style:italic; font-weight:800; color:#1e3a8a; letter-spacing:-.04em; }
+    .top-nav { display:flex; gap:36px; align-items:center; font-size:20px; font-weight:700; color:#475569; }
+    .top-nav .active { color:var(--blue); position:relative; }
+    .top-nav .active::after { content:""; position:absolute; left:0; right:0; bottom:-8px; height:3px; border-radius:999px; background:var(--blue); }
+    .left, .right { padding:22px 16px 16px; }
+    .left { border-right:1px solid var(--border); }
+    .right { border-left:1px solid var(--border); }
+    .panel { background:var(--panel); border-radius:28px; box-shadow: 0 12px 32px rgba(15,23,42,.06); border:1px solid rgba(231,237,245,.7); }
+    .sidebar-item { display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:22px; color:#64748b; font-size:18px; font-weight:600; cursor:pointer; }
+    .sidebar-item.active { background:#edf4ff; color:#0f3fa7; font-weight:800; }
+    .sidebar-item svg { flex:0 0 auto; }
+    .main { padding:0 16px 16px; }
+    .map-card { position:relative; height:100%; min-height: calc(100vh - 88px - 32px); border-radius:0; overflow:hidden; background:linear-gradient(180deg,#e65b55 0%, #d84f47 100%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    #map { position:absolute; inset:0; height:100%; width:100%; z-index:0; filter:saturate(.85) contrast(1.05); }
+    .map-overlay { position:absolute; inset:0; z-index:2; pointer-events:none; padding:28px 24px; display:flex; flex-direction:column; justify-content:space-between; }
+    .hero-chat { width:min(100%, 760px); background:rgba(255,247,247,.88); border-radius:28px; padding:18px; box-shadow:0 8px 24px rgba(27,31,59,.18); border:1px solid rgba(255,255,255,.35); backdrop-filter: blur(14px); pointer-events:auto; }
+    .chat-pill { display:inline-flex; align-items:center; gap:12px; padding:12px 18px; border-radius:18px; font-size:18px; font-weight:700; }
+    .chat-pill.primary { background:#0c4fb2; color:white; }
+    .chat-pill.secondary { background:#fff; color:#1f2937; border:1px solid #e2e8f0; }
+    .voice-btn { pointer-events:auto; width:44px; height:44px; border-radius:14px; background:#136f2c; color:#fff; display:grid; place-items:center; box-shadow:0 8px 20px rgba(19,111,44,.3); }
+    .route-cards { display:flex; gap:16px; overflow:auto; pointer-events:auto; padding-bottom:6px; }
+    .route-card { min-width: 380px; max-width: 380px; background:#fff; border-radius:28px; padding:18px; box-shadow:0 12px 26px rgba(20,30,58,.18); }
+    .route-card.best { border:2px solid #0f4fd6; box-shadow:0 16px 34px rgba(15,79,214,.18); }
+    .route-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .route-chip { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:#f1f5f9; color:#334155; font-size:13px; font-weight:700; }
+    .route-chip.good { background:#e9f8ef; color:#166534; }
+    .route-chip.warn { background:#fff7ed; color:#9a3412; }
+    .badge { display:inline-flex; align-items:center; padding:8px 14px; border-radius:999px; font-weight:800; font-size:17px; }
+    .badge.yellow { background:#ffd400; color:#825f00; }
+    .badge.blue { background:#d9e6ff; color:#2451c2; }
+    .quiet-dots { display:flex; gap:6px; align-items:center; }
+    .quiet-dots span { width:20px; height:20px; border-radius:999px; background:#e5e7eb; display:inline-block; }
+    .quiet-dots span.active { background:#0f6a2f; }
+    .quiet-dots span.mid { background:#8a6a00; }
+    .right-card { padding:24px; }
+    .search-box { display:flex; align-items:center; gap:10px; background:#f3f5f9; border-radius:999px; padding:14px 18px; color:#64748b; }
+    .stop-list { display:flex; flex-direction:column; gap:18px; }
+    .stop-card { padding:18px; border-radius:24px; background:#f8fafc; border:1px solid #eef2f7; cursor:pointer; transition:.15s transform ease; }
+    .stop-card:hover { transform: translateY(-1px); }
+    .stop-arrival { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .stop-arrival-badge { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border-radius:999px; background:#eaf2ff; color:#1d4ed8; font-size:12px; font-weight:800; }
+    .stop-arrival-time { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border-radius:999px; background:#ecfdf5; color:#166534; font-size:12px; font-weight:800; }
+    .stop-arrival-none { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border-radius:999px; background:#fff7ed; color:#9a3412; font-size:12px; font-weight:800; }
+    .footer { grid-column:1 / -1; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 26px; color:#64748b; border-top:1px solid var(--border); font-size:14px; letter-spacing:.08em; }
+    .small-label { color:#64748b; font-size:14px; }
+    .status-dot { width:10px; height:10px; border-radius:999px; background:#17a34a; display:inline-block; }
+    .trip-summary { padding:18px 22px; margin-bottom:16px; }
+    .trip-summary .title { font-size:20px; font-weight:800; }
+    .trip-summary .desc { color:var(--muted); margin-top:6px; }
+    .floating-search { position:absolute; top:22px; right:22px; z-index:3; }
+    .map-pin { position:absolute; z-index:3; pointer-events:none; }
+    .toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); padding:12px 16px; background:#0f172a; color:#fff; border-radius:999px; opacity:0; transition:.25s ease; z-index:9999; }
+    .toast.show { opacity:1; }
+    .lang-switch { display:flex; gap:8px; align-items:center; background:#eef4ff; padding:6px; border-radius:999px; }
+    .lang-switch button { border:0; background:transparent; padding:8px 14px; border-radius:999px; font-weight:800; color:#64748b; }
+    .lang-switch button.active { background:#0f4fd6; color:#fff; }
+    .bilingual { line-height:1.15; }
+    .bilingual .cn { display:block; font-size:.78em; color:var(--muted); font-weight:700; margin-top:4px; }
+    .speech-settings { margin-top:16px; padding:18px; border-radius:22px; background:#f8fbff; border:1px solid #e3ecff; }
+    .speech-settings .title { font-size:18px; font-weight:800; color:#0f172a; }
+    .speech-grid { display:grid; gap:12px; margin-top:14px; }
+    .speech-row { display:flex; flex-direction:column; gap:6px; }
+    .speech-row label { font-size:13px; font-weight:800; color:#334155; }
+    .speech-row select { width:100%; border:1px solid #dbe4f3; background:white; border-radius:16px; padding:10px 12px; font-weight:700; color:#0f172a; }
+    .speech-note { margin-top:12px; font-size:13px; line-height:1.5; color:#64748b; }
+    .speech-status { margin-top:10px; display:flex; align-items:center; gap:8px; font-size:13px; color:#0f4fd6; font-weight:800; }
+    .speech-status .dot { width:8px; height:8px; border-radius:999px; background:#0f4fd6; display:inline-block; }
+    @media (max-width: 1280px) {
+      .app-shell { grid-template-columns: 280px minmax(0,1fr) 320px; }
+      .top-nav { gap:20px; font-size:18px; }
+    }
+    @media (max-width: 1024px) {
+      .app-shell { grid-template-columns: 1fr; grid-template-rows:auto auto auto auto auto; }
+      .left, .right { border:none; }
+      .main { padding:0 12px 12px; }
+      .map-card { min-height: 68vh; border-radius:24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div id="brand" class="brand">SG Bus assistant</div>
+      <nav class="top-nav hidden md:flex">
+        <span id="nav-schedules" class="active">Schedules</span>
+        <span id="nav-routes">Routes</span>
+        <span id="nav-live-map">Live Map</span>
+        <span id="nav-accessibility">Accessibility</span>
+      </nav>
+      <div class="flex items-center gap-6 text-slate-600">
+        <div class="lang-switch" role="tablist" aria-label="Language switch">
+          <button id="lang-zh-btn" class="active" type="button">中文</button>
+          <button id="lang-en-btn" type="button">EN</button>
+        </div>
+        <button class="w-10 h-10 rounded-full hover:bg-slate-100 grid place-items-center" title="Profile">◉</button>
+      </div>
+    </header>
+
+    <aside class="left">
+      <div class="panel p-5 mb-6">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-200">
+            <img src="https://69d215411362132535daf948.imgix.net/bus2.jpg?w=200&q=80&auto=format&fit=crop" alt="Concierge" class="w-full h-full object-cover">
+          </div>
+          <div>
+            <div id="concierge-title" class="font-extrabold text-xl text-slate-900">Concierge</div>
+            <div id="concierge-status" class="small-label">Online | 在线</div>
+          </div>
+        </div>
+        <button id="start-journey-btn" class="mt-4 w-full rounded-full py-4 bg-blue-600 text-white text-lg font-extrabold shadow-lg shadow-blue-600/25 hover:bg-blue-700">Start Journey</button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="sidebar-item active"><span>🏠</span><span id="sidebar-home">Home</span></div>
+        <div class="sidebar-item"><span>📍</span><span id="sidebar-nearby">Nearby Stops</span></div>
+        <div class="sidebar-item"><span>★</span><span id="sidebar-saved">Saved Routes</span></div>
+        <div class="sidebar-item"><span>🤖</span><span id="sidebar-ai">AI Assistant</span></div>
+      </div>
+
+      <div class="speech-settings panel mt-6">
+        <div class="title">Speech settings | 语音设置</div>
+        <div class="speech-grid">
+          <div class="speech-row">
+            <label for="speech-engine-select">Engine / 引擎</label>
+            <select id="speech-engine-select">
+              <option value="auto">Auto | 自动</option>
+              <option value="web">Web Speech API</option>
+              <option value="azure">Azure Speech</option>
+            </select>
+          </div>
+          <div class="speech-row">
+            <label for="speech-lang-select">Recognition mode / 识别模式</label>
+            <select id="speech-lang-select">
+              <option value="zh">中文 (zh-CN)</option>
+              <option value="en">English (en-US)</option>
+              <option value="sg">Singapore English (en-SG, code-switching)</option>
+            </select>
+          </div>
+        </div>
+        <div id="speech-status" class="speech-status"><span class="dot"></span><span>Checking speech service…</span></div>
+        <div class="speech-note">Azure Speech supports en-SG, bilingual commands, and phrase hints from bus stop data. If Azure is unavailable, the app falls back to Web Speech.</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="map-card panel">
+        <div id="map"></div>
+
+        <div class="map-overlay">
+          <div class="hero-chat">
+            <div class="grid grid-cols-[92px_minmax(0,1fr)] gap-4 items-center">
+              <div class="flex flex-col items-center">
+                <img src="https://69d215411362132535daf948.imgix.net/bus2.jpg?w=200&q=80&auto=format&fit=crop" alt="AI" class="w-24 h-24 rounded-[22px] object-cover ring-2 ring-white shadow-lg">
+                <button id="mic-btn" class="voice-btn -mt-4">🎤</button>
+              </div>
+              <div class="space-y-3">
+                <div class="flex gap-3 flex-wrap">
+                  <div id="pill-where" class="chat-pill primary">Where to go?｜您要去哪里?</div>
+                  <div id="pill-arrival" class="chat-pill secondary">Which bus arrives when?｜哪辆巴士什么时候到?</div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div id="voice-bars" class="flex gap-1 items-end h-6">
+                    <span class="w-1.5 rounded-full bg-blue-400 h-4"></span>
+                    <span class="w-1.5 rounded-full bg-blue-500 h-6"></span>
+                    <span class="w-1.5 rounded-full bg-blue-400 h-3"></span>
+                    <span class="w-1.5 rounded-full bg-blue-500 h-5"></span>
+                    <span class="w-1.5 rounded-full bg-blue-400 h-2"></span>
+                  </div>
+                  <div id="assistant-status" class="text-slate-600 font-semibold">Ready to search by voice or tap a stop.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="route-cards" id="route-cards"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="right">
+      <div class="panel right-card mb-8">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 text-blue-700 text-2xl">⌖</div>
+          <div class="flex-1">
+            <div id="current-location-title" class="text-2xl font-extrabold">Current Location</div>
+            <div id="current-location-subtitle" class="small-label">当前位置</div>
+            <div class="mt-5 search-box">
+              <span>🔎</span>
+              <input id="postcode-input" class="bg-transparent outline-none flex-1 text-lg" placeholder="Enter Postcode | 输入邮编" />
+            </div>
+            <div class="mt-4 font-bold text-blue-700" id="location-label">Near: Baker Street, London</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="nearby-stops-title" class="mb-4 text-2xl font-extrabold">Nearby Stops | 附近站点</div>
+      <div class="stop-list" id="stop-list"></div>
+
+      <div class="mt-8 panel p-6 flex items-center justify-between text-slate-500 font-bold tracking-[.14em] uppercase">
+        <span><span class="status-dot mr-2 align-middle"></span>Concierge Active</span>
+        <span>v2.4.0-Zenmatrix</span>
+      </div>
+    </aside>
+
+    <footer class="footer">
+      <div>© 2024 ZENMATRIX PTE LTD. BILINGUAL SUPPORT EN/CN.</div>
+      <div class="flex gap-8">
+        <span>PRIVACY POLICY</span>
+        <span>TERMS OF SERVICE</span>
+        <span>CONTACT SUPPORT</span>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast">Hello</div>
+
+  <script>
+    // const apiBase = '';
+    // const defaultLocation = { lat: 1.2966, lon: 103.8520, label: 'Baker Street, London' };
+    // const demoDestination = { lat: 1.3575, lon: 103.9885, label: 'Changi Airport T2' };
+    // 1. 基础配置
+    const apiBase = ''; 
+    const defaultLocation = { lat: 1.2966, lon: 103.8520, label: 'Singapore' }; // 修正了 Label
+    const demoDestination = { lat: 1.3575, lon: 103.9885, label: 'Changi Airport T2' };
+
+    // 2. 初始化图标 (放在最前面，防止 ReferenceError)
+    const userIcon = L.divIcon({ 
+        className: 'custom-pin', 
+        html: '<div style="background:#0f4fd6; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px rgba(15,79,214,0.5)"></div>',
+        iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
+    const destIcon = L.divIcon({ 
+        className: 'custom-pin', 
+        html: '<div style="background:#ef4444; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px rgba(239,68,68,0.5)"></div>',
+        iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
+    // 3. 定义全局 State
+    const state = {
+        current: defaultLocation,
+        destination: demoDestination,
+        nearby: [],
+        markers: [],
+        routeOptions: [],
+        trip: null,
+        routeLayers: null // 记得在后面初始化它
+    };
+
+    // 4. 初始化地图
+    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([defaultLocation.lat, defaultLocation.lon], 15);
+    L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png', { detectRetina: true }).addTo(map);
+
+    // 5. 创建 Marker
+    const userMarker = L.marker([state.current.lat, state.current.lon], { icon: userIcon }).addTo(map);
+    const destMarker = L.marker([state.destination.lat, state.destination.lon], { icon: destIcon }).addTo(map);
+    
+    // 初始化路线图层组
+    state.routeLayers = L.featureGroup().addTo(map);
+
+    const startJourneyBtn = document.getElementById('start-journey-btn');
+    const micBtn = document.getElementById('mic-btn');
+    const stopListEl = document.getElementById('stop-list');
+    const routeCardsEl = document.getElementById('route-cards');
+    const assistantStatus = document.getElementById('assistant-status');
+    const speechStatus = document.getElementById('speech-status');
+    const speechEngineSelect = document.getElementById('speech-engine-select');
+    const speechLangSelect = document.getElementById('speech-lang-select');
+    const locationLabel = document.getElementById('location-label');
+    const postcodeInput = document.getElementById('postcode-input');
+    const toast = document.getElementById('toast');
+    const langZhBtn = document.getElementById('lang-zh-btn');
+    const langEnBtn = document.getElementById('lang-en-btn');
+    let speechSession = null;
+    let azureSpeechConfig = null;
+    let azurePhraseHints = [];
+    let speechSdkLoadPromise = null;
+
+    const STORAGE_KEYS = {
+      engine: 'sgbus.speech.engine',
+      lang: 'sgbus.speech.lang',
+    };
+
+    const speechState = {
+      enginePreference: localStorage.getItem(STORAGE_KEYS.engine) || 'auto',
+      mode: localStorage.getItem(STORAGE_KEYS.lang) || 'zh',
+      azureReady: false,
+      azureRegion: '',
+      azureToken: '',
+    };
+
+    const speechModeMap = {
+      zh: { web: 'zh-CN', azure: 'zh-CN' },
+      en: { web: 'en-US', azure: 'en-US' },
+      sg: { web: 'en-SG', azure: 'en-SG' },
+    };
+
+    function setSpeechStatus(message, tone = 'info') {
+      if (!speechStatus) return;
+      const dotColor = tone === 'error' ? '#dc2626' : tone === 'warn' ? '#d97706' : '#0f4fd6';
+      speechStatus.innerHTML = `<span class="dot" style="background:${dotColor}"></span><span>${message}</span>`;
+    }
+
+    function getSelectedSpeechLang() {
+      return speechLangSelect?.value || speechState.mode;
+    }
+
+    function getSelectedSpeechEngine() {
+      return speechEngineSelect?.value || speechState.enginePreference;
+    }
+
+    function setSpeechSelection(engine, mode) {
+      speechState.enginePreference = engine;
+      speechState.mode = mode;
+      if (speechEngineSelect) speechEngineSelect.value = engine;
+      if (speechLangSelect) speechLangSelect.value = mode;
+      localStorage.setItem(STORAGE_KEYS.engine, engine);
+      localStorage.setItem(STORAGE_KEYS.lang, mode);
+      setSpeechStatus(engine === 'azure'
+        ? `Azure Speech · ${mode === 'sg' ? 'en-SG / code-switching' : mode}`
+        : `Web Speech · ${mode === 'sg' ? 'en-SG (best effort)' : mode}`);
+    }
+
+    function setSpeechButtonsEnabled(enabled) {
+      if (micBtn) micBtn.disabled = !enabled;
+    }
+
+    function normalizeSpeechTranscript(text) {
+      return (text || '').trim().replace(/\s+/g, ' ');
+    }
+
+    async function loadSpeechConfig() {
+      try {
+        const res = await fetch(`${apiBase}/api/v1/speech/config`);
+        const cfg = await res.json();
+        azureSpeechConfig = cfg;
+        speechState.azureReady = (cfg.ready === true || cfg.enabled === true);
+        speechState.azureRegion = cfg.region || '';
+
+        if (speechState.azureReady) {
+          const region = cfg.region || 'unknown';
+          setSpeechStatus(`Azure Speech ready · ${region} · en-SG`, 'info');
+          if (speechState.enginePreference === 'auto') {
+            setSpeechSelection('azure', speechState.mode);
+          }
+          return;
+        }
+
+        const missing = Array.isArray(cfg.missing_fields) && cfg.missing_fields.length
+          ? `Missing: ${cfg.missing_fields.join(', ')}`
+          : 'Backend Azure Speech env vars are not set';
+        setSpeechStatus(`${cfg.message || 'Azure unavailable'} · ${missing}`, 'warn');
+      } catch (err) {
+        speechState.azureReady = false;
+        setSpeechStatus(`Speech config load failed: ${err?.message || err}`, 'error');
+      }
+    }
+
+    async function loadAzureSpeechToken() {
+      const res = await fetch(`${apiBase}/api/v1/speech/token`);
+      if (!res.ok) {
+        throw new Error(`token request failed: ${res.status}`);
+      }
+      return await res.json();
+    }
+
+    function stopSpeechSession() {
+      try {
+        if (speechSession?.stop) speechSession.stop();
+      } catch (err) {
+        console.warn('stop speech session failed', err);
+      }
+      speechSession = null;
+    }
+
+    function getSpeechSdk() {
+      return window.SpeechSDK || null;
+    }
+
+    function loadScriptOnce(src) {
+      return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-speech-sdk-src="${src}"]`);
+        if (existing) {
+          existing.addEventListener('load', () => resolve(), { once: true });
+          existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+          if (window.SpeechSDK) resolve();
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.dataset.speechSdkSrc = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function ensureSpeechSdkLoaded() {
+      if (getSpeechSdk()) return window.SpeechSDK;
+      if (!speechSdkLoadPromise) {
+        speechSdkLoadPromise = (async () => {
+          const candidates = [
+            'https://aka.ms/csspeech/jsbrowserpackageraw',
+            'https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js',
+          ];
+          let lastErr = null;
+          for (const src of candidates) {
+            try {
+              await loadScriptOnce(src);
+              if (getSpeechSdk()) return window.SpeechSDK;
+            } catch (err) {
+              lastErr = err;
+            }
+          }
+          throw lastErr || new Error('Azure Speech SDK could not be loaded');
+        })();
+      }
+      return await speechSdkLoadPromise;
+    }
+
+    function createWebSpeechRecognizer() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      const recognition = new SR();
+      const selectedLang = getSelectedSpeechLang();
+      recognition.lang = speechModeMap[selectedLang]?.web || 'zh-CN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      return recognition;
+    }
+
+    async function runAzureRecognition() {
+      const SpeechSDK = window.SpeechSDK; // 确保 SDK 已加载
+      if (!SpeechSDK) throw new Error('Azure Speech SDK not loaded');
+
+      const tokenData = await loadAzureSpeechToken();
+      const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(tokenData.token, tokenData.region);
+      
+      // 设置识别语言
+      const selectedLang = getSelectedSpeechLang();
+      speechConfig.speechRecognitionLanguage = speechModeMap[selectedLang]?.azure || 'en-SG';
+
+      // 默认音频输入（麦克风）
+      const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+
+      // 💡 关键修复：使用 new 关键字调用构造函数，而不是 fromConfig
+      let recognizer;
+      
+      if (selectedLang === 'sg') {
+          // 如果需要多语言自动检测 (可选)
+          const autoDetect = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(['en-SG', 'zh-CN']);
+          recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig, autoDetect);
+      } else {
+          // 标准单语言识别
+          recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+      }
+
+      if (SpeechSDK.PhraseListGrammar?.fromRecognizer) {
+        const phraseList = SpeechSDK.PhraseListGrammar.fromRecognizer(recognizer);
+        azurePhraseHints.slice(0, 100).forEach((phrase) => phraseList.addPhrase(phrase));
+      }
+
+      speechSession = recognizer;
+      setSpeechStatus(`Azure listening · ${selectedLang === 'sg' ? 'en-SG / bilingual' : selectedLang}`);
+
+      return new Promise((resolve, reject) => {
+        recognizer.recognizeOnceAsync((result) => {
+          try {
+            if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+              resolve(normalizeSpeechTranscript(result.text));
+            } else if (result.reason === SpeechSDK.ResultReason.NoMatch) {
+              reject(new Error('No speech recognized'));
+            } else {
+              reject(new Error(`Speech recognition ended with reason ${result.reason}`));
+            }
+          } finally {
+            recognizer.close();
+            speechSession = null;
+          }
+        }, (err) => {
+          try { recognizer.close(); } catch (_) {}
+          speechSession = null;
+          reject(err);
+        });
+      });
+    }
+
+    async function runWebSpeechRecognition() {
+      const recognizer = createWebSpeechRecognizer();
+      if (!recognizer) throw new Error('Speech recognition not supported');
+
+      return new Promise((resolve, reject) => {
+        speechSession = recognizer;
+        recognizer.onresult = (event) => {
+          const text = event.results[0][0].transcript;
+          resolve(normalizeSpeechTranscript(text));
+        };
+        recognizer.onerror = (event) => {
+          reject(new Error(event?.error || 'Web Speech error'));
+        };
+        recognizer.onend = () => {
+          speechSession = null;
+        };
+        try {
+          recognizer.start();
+        } catch (err) {
+          speechSession = null;
+          reject(err);
+        }
+      });
+    }
+
+    async function startSpeechRecognition() {
+      stopSpeechSession();
+      const preferred = getSelectedSpeechEngine();
+      const wantsAzure = preferred === 'azure' || (preferred === 'auto' && speechState.azureReady);
+
+      if (wantsAzure) {
+        try {
+          return await runAzureRecognition();
+        } catch (err) {
+          console.warn('Azure recognition failed, falling back to Web Speech', err);
+          setSpeechStatus(`Azure unavailable: ${err?.message || err} · falling back to Web Speech`, 'warn');
+        }
+      }
+
+      return await runWebSpeechRecognition();
+    }
+
+    const i18n = {
+      zh: {
+        brand: 'SG 巴士助手',
+        schedules: '时刻表',
+        routes: '路线',
+        liveMap: '实时地图',
+        accessibility: '无障碍',
+        concierge: '公交车助手',
+        online: '在线',
+        startJourney: '开始行程',
+        home: '首页',
+        nearbyStops: '附近站点',
+        savedRoutes: '收藏路线',
+        aiAssistant: 'AI 助手',
+        whereToGo: '您要去哪里？',
+        whichBus: '哪辆巴士什么时候到？',
+        currentLocation: '当前地点',
+        currentLocationSubtitle: '当前位置',
+        searchPlaceholder: '输入邮编或地点 | Enter postcode or place',
+        ready: '准备好后可语音输入或点击站点。',
+        listening: '正在聆听… 说出目的地',
+        searching: '正在搜索附近站点…',
+        planning: '正在规划最佳巴士方案…',
+        noMatch: '未找到匹配站点',
+        noRoute: '未找到直达方案',
+        noNearby: '未找到附近站点。',
+        routeDetails: '线路详情',
+        noRouteDetails: '线路详情不可用',
+        postcodeNotFound: '邮编未找到',
+        loadRoute: (svc) => `已加载线路 ${svc}`,
+        updatedLocation: (label) => `当前位置已更新：${label}`,
+        bestOption: (service) => `最佳方案：${service}`,
+        heard: (text) => `识别到：${text}`,
+        welcomeSpeak: (service, mins) => `推荐乘坐 ${service} 路，${mins} 分钟后到达`,
+        routeCoords: '路线坐标',
+        startCoords: '起点坐标',
+        endCoords: '终点坐标',
+        suggestedRoute: '建议路线',
+        services: '服务',
+        walkMinutes: (m) => `步行 ${m} 分钟`,
+        arrivingSoon: '即将到达',
+        noLiveData: '暂无实时数据',
+        terminal: '终点站',
+        details: '详情',
+        quiet: '舒适',
+        moderate: '适中',
+        tryAnother: '请尝试其他目的地或站点。',
+        foundNearby: (n) => `找到 ${n} 个附近站点。`,
+        currentUpdated: (label) => `当前位置已更新：${label}`,
+        focusedOn: (name) => `已聚焦到 ${name}`,
+        routeFailed: '路线规划失败。',
+        planFailed: '规划失败',
+        voiceError: '语音输入错误',
+        loadingRouteDetails: '线路详情不可用',
+        nearLabel: (label) => `附近：${label}`,
+      },
+      en: {
+        brand: 'SG Bus Assistant',
+        schedules: 'Schedules',
+        routes: 'Routes',
+        liveMap: 'Live Map',
+        accessibility: 'Accessibility',
+        concierge: 'Concierge',
+        online: 'Online',
+        startJourney: 'Start Journey',
+        home: 'Home',
+        nearbyStops: 'Nearby Stops',
+        savedRoutes: 'Saved Routes',
+        aiAssistant: 'AI Assistant',
+        whereToGo: 'Where to go?',
+        whichBus: 'Which bus arrives when?',
+        currentLocation: 'Current Location',
+        currentLocationSubtitle: '当前位置',
+        searchPlaceholder: 'Enter postcode or place | 输入邮编或地点',
+        ready: 'Ready to search by voice or tap a stop.',
+        listening: 'Listening… say your destination',
+        searching: 'Searching nearby stops…',
+        planning: 'Planning the best bus options…',
+        noMatch: 'No matching stops',
+        noRoute: 'No direct bus found',
+        noNearby: 'No nearby stops found.',
+        routeDetails: 'Route details',
+        noRouteDetails: 'Route details unavailable',
+        postcodeNotFound: 'Postcode not found',
+        loadRoute: (svc) => `Loaded route ${svc}`,
+        updatedLocation: (label) => `Current location updated: ${label}`,
+        bestOption: (service) => `Best option: ${service}`,
+        heard: (text) => `Heard: ${text}`,
+        welcomeSpeak: (service, mins) => `Recommended bus ${service}, arriving in about ${mins} minutes`,
+        routeCoords: 'Route coordinates',
+        startCoords: 'Start coordinates',
+        endCoords: 'End coordinates',
+        suggestedRoute: 'Suggested route',
+        services: 'Services',
+        walkMinutes: (m) => `Walk ${m} min`,
+        arrivingSoon: 'Arriving soon',
+        noLiveData: 'No live data',
+        terminal: 'Terminal',
+        details: 'Details',
+        quiet: 'Comfortable',
+        moderate: 'Moderate',
+        tryAnother: 'Try another destination or stop.',
+        foundNearby: (n) => `Found ${n} nearby stops.`,
+        currentUpdated: (label) => `Current location updated: ${label}`,
+        focusedOn: (name) => `Focused on ${name}`,
+        routeFailed: 'Route planning failed.',
+        planFailed: 'Plan failed',
+        voiceError: 'Voice input error',
+        loadingRouteDetails: 'Route details unavailable',
+        nearLabel: (label) => `Near: ${label}`,
+      }
+    };
+
+    const stateLang = {
+      ui: 'zh',
+      speech: 'zh',
+    };
+
+    function t(key, ...args) {
+      const value = i18n[stateLang.ui][key];
+      return typeof value === 'function' ? value(...args) : value;
+    }
+
+    function setLanguage(lang) {
+      stateLang.ui = lang;
+      stateLang.speech = lang;
+      langZhBtn.classList.toggle('active', lang === 'zh');
+      langEnBtn.classList.toggle('active', lang === 'en');
+      document.getElementById('brand').textContent = t('brand');
+      document.getElementById('nav-schedules').textContent = t('schedules');
+      document.getElementById('nav-routes').textContent = t('routes');
+      document.getElementById('nav-live-map').textContent = t('liveMap');
+      document.getElementById('nav-accessibility').textContent = t('accessibility');
+      document.getElementById('concierge-title').textContent = t('concierge');
+      document.getElementById('concierge-status').textContent = t('online');
+      document.getElementById('start-journey-btn').textContent = t('startJourney');
+      document.getElementById('sidebar-home').textContent = t('home');
+      document.getElementById('sidebar-nearby').textContent = t('nearbyStops');
+      document.getElementById('sidebar-saved').textContent = t('savedRoutes');
+      document.getElementById('sidebar-ai').textContent = t('aiAssistant');
+      document.getElementById('pill-where').textContent = `${t('whereToGo')}｜${lang === 'zh' ? '去机场' : 'to the airport'}`;
+      document.getElementById('pill-arrival').textContent = `${t('whichBus')}｜${lang === 'zh' ? '哪辆巴士什么时候到？' : 'Which bus arrives when?'}`;
+      document.getElementById('current-location-title').textContent = t('currentLocation');
+      document.getElementById('current-location-subtitle').textContent = t('currentLocationSubtitle');
+      locationLabel.textContent = `${t('currentLocation')}: ${state.current.label}`;
+      postcodeInput.placeholder = t('searchPlaceholder');
+      document.getElementById('nearby-stops-title').textContent = `${t('nearbyStops')} | ${lang === 'zh' ? '附近站点' : 'Nearby Stops'}`;
+      document.querySelector('#assistant-status').textContent = t('ready');
+      renderNearbyStops(state.nearby);
+      renderRouteCards(state.routeOptions);
+    }
+
+    function applySpeechLanguageSelection(mode) {
+      const normalized = mode === 'sg' ? 'sg' : mode === 'en' ? 'en' : 'zh';
+      speechState.mode = normalized;
+      localStorage.setItem(STORAGE_KEYS.lang, normalized);
+      if (speechLangSelect) speechLangSelect.value = normalized;
+      setSpeechStatus(speechState.enginePreference === 'azure'
+        ? `Azure Speech · ${normalized === 'sg' ? 'en-SG / code-switching' : normalized}`
+        : `Web Speech · ${normalized === 'sg' ? 'en-SG (best effort)' : normalized}`);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = stateLang.speech === 'en' ? 'en-US' : 'zh-CN';
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    }
+
+    function normalizeVoiceQuery(text) {
+      return (text || '')
+        .trim()
+        .replace(/^(我要去|去|到|前往|我要到|我要去到|我要前往|please take me to|take me to|go to|i want to go to)\s*/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    async function resolveLocationFromText(text) {
+      const query = normalizeVoiceQuery(text);
+      if (!query) return null;
+
+      if (/机场|t2|changi|airport/i.test(query)) {
+        return demoDestination;
+      }
+
+      try {
+        const geoRes = await fetch(`https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${encodeURIComponent(query)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`);
+        const geoData = await geoRes.json();
+        const geoResult = geoData?.results?.[0];
+        if (geoResult?.LATITUDE && geoResult?.LONGITUDE) {
+          return {
+            lat: Number(geoResult.LATITUDE),
+            lon: Number(geoResult.LONGITUDE),
+            label: geoResult.ADDRESS || geoResult.SEARCHVAL || query,
+          };
+        }
+      } catch (err) {
+        console.warn('geocode failed', err);
+      }
+
+      try {
+        const stopRes = await fetch(`${apiBase}/api/v1/search-stops?q=${encodeURIComponent(query)}&limit=1`);
+        const stopData = await stopRes.json();
+        const firstStop = stopData?.results?.[0];
+        if (firstStop?.latitude != null && firstStop?.longitude != null) {
+          return {
+            lat: Number(firstStop.latitude),
+            lon: Number(firstStop.longitude),
+            label: firstStop.name || firstStop.code || query,
+          };
+        }
+      } catch (err) {
+        console.warn('stop search failed', err);
+      }
+
+      return null;
+    }
+
+    async function setDestinationLocation(location, sourceText = '') {
+      if (!location) return false;
+      state.destination = location;
+      // destMarker.setLatLng([location.lat, location.lon]);
+      // 💡 确保更新坐标的同时，保持图标不变
+      destMarker.setLatLng([location.lat, location.lon]).setIcon(destIcon);
+      map.flyTo([location.lat, location.lon], 15, { duration: 0.5 });
+      const suffix = sourceText ? ` (${sourceText})` : '';
+      showToast(`${stateLang.ui === 'zh' ? '目的地已更新' : 'Destination updated'}: ${location.label}${suffix}`);
+      setAssistantStatus(stateLang.ui === 'zh'
+        ? `已识别目的地：${location.label}`
+        : `Destination resolved: ${location.label}`);
+      return true;
+    }
+
+    function setAssistantStatus(text) {
+      assistantStatus.textContent = text;
+    }
+
+    function clearMarkers() {
+      state.markers.forEach(m => map.removeLayer(m));
+      state.markers = [];
+    }
+
+    function renderNearbyStops(stops) {
+      stopListEl.innerHTML = '';
+      if (!stops.length) {
+        stopListEl.innerHTML = `<div class="panel p-5 text-slate-500">${t('noNearby')}</div>`;
+        return;
+      }
+      stops.forEach((stop, index) => {
+        const stopName = stop.name || stop.stop_name || stop.stop?.name || stop.code;
+        const services = (stop.services || []).slice(0, 4).join(' · ');
+        const nearest = stop.nearest_arrival;
+        const arrivalLine = nearest
+          ? `${nearest.service} · ${nearest.minutes != null ? `${nearest.minutes}m` : t('noLiveData')}`
+          : t('noLiveData');
+        const nearestLabel = nearest
+          ? `${nearest.service}${nearest.is_wab ? ' ♿' : ''}`
+          : '—';
+        const el = document.createElement('div');
+        el.className = 'stop-card';
+        el.innerHTML = `
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="inline-flex items-center rounded-md bg-blue-100 text-blue-700 px-3 py-1 text-sm font-extrabold">CODE: ${stop.code}</div>
+              <div class="mt-3 text-2xl font-extrabold">${stopName}</div>
+              <div class="text-slate-500 mt-1">${stop.road || ''}</div>
+              <div class="mt-3 text-sm text-slate-500">${t('services')}: ${services || '—'}</div>
+              <div class="stop-arrival">
+                <span class="stop-arrival-badge">${stateLang.ui === 'zh' ? '最近到站巴士' : 'Next bus'}</span>
+                <span class="stop-arrival-time">${nearestLabel} · ${arrivalLine}</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-extrabold">${Math.round(stop.distance_m || 0)}m</div>
+              <div class="small-label">${t('walkMinutes', Math.max(1, Math.round((stop.distance_m || 0) / 80)))}</div>
+              ${nearest ? `<div class="mt-3 text-sm font-bold text-blue-700">${stateLang.ui === 'zh' ? '下一班' : 'Arrives in'} ${nearest.minutes != null ? `${nearest.minutes}m` : t('noLiveData')}</div>` : `<div class="mt-3 text-sm font-bold text-amber-700">${t('noLiveData')}</div>`}
+            </div>
+          </div>`;
+        el.addEventListener('click', () => focusStop(stop));
+        stopListEl.appendChild(el);
+      });
+    }
+
+    function renderRouteCards(options) {
+      state.routeOptions = options || [];
+      routeCardsEl.innerHTML = '';
+      if (!state.routeOptions.length) {
+        routeCardsEl.innerHTML = `<div class="route-card"><div class="font-extrabold text-xl mb-2">${t('noRoute')}</div><div class="text-slate-500">${t('tryAnother')}</div></div>`;
+        return;
+      }
+      state.routeOptions.forEach((opt, idx) => {
+        const live = opt.live;
+        const card = document.createElement('div');
+        card.className = `route-card ${idx === 0 ? 'best' : ''}`;
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex flex-col gap-2">
+              <div class="badge yellow">${opt.service}</div>
+              ${idx === 0 ? `<div class="badge blue">Best Match | 最佳推荐</div>` : ''}
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-extrabold text-blue-700">${live ? `${live.minutes}m` : 'Due'}</div>
+              <div class="small-label">${live ? t('arrivingSoon') : t('noLiveData')}</div>
+            </div>
+          </div>
+          <div class="mt-4 text-2xl font-extrabold">${opt.from_name}</div>
+          <div class="text-slate-500 mt-1">${t('terminal')}: ${opt.to_name}</div>
+          <div class="route-meta">
+            <span class="route-chip">${opt.stops} stops</span>
+            <span class="route-chip">${opt.dist_km} km</span>
+            <span class="route-chip ${live?.is_wab ? 'good' : ''}">${live?.is_wab ? 'WAB ♿' : 'Standard'}</span>
+            <span class="route-chip ${live ? 'good' : 'warn'}">${live ? `Load: ${live.load}` : t('noLiveData')}</span>
+            ${typeof opt.confidence === 'number' ? `<span class="route-chip">Confidence ${opt.confidence}%</span>` : ''}
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <div>
+              <div class="quiet-dots">
+                <span class="active"></span><span class="${idx === 0 ? 'active' : 'mid'}"></span><span></span>
+              </div>
+              <div class="mt-2 text-base font-bold text-slate-700">${idx === 0 ? `${t('quiet')} | Quiet` : `${t('moderate')} | Moderate`}</div>
+            </div>
+            <button class="rounded-full bg-blue-700 text-white px-5 py-3 text-lg font-extrabold" data-service="${opt.service}">${t('details')}</button>
+          </div>`;
+        card.querySelector('button').addEventListener('click', () => loadRouteDetails(opt.service));
+        routeCardsEl.appendChild(card);
+      });
+    }
+
+    function addStopMarkers(stops) {
+      clearMarkers();
+      stops.slice(0, 8).forEach((stop, i) => {
+        const marker = L.marker([stop.latitude, stop.longitude]).addTo(map)
+          .bindPopup(`<b>${stop.name || stop.code}</b><br>${stop.code}`);
+        state.markers.push(marker);
+      });
+    }
+
+    function normalizeArrivalItem(item) {
+      if (!item) return null;
+      return {
+        service: item.service || item.ServiceNo || '',
+        minutes: item.minutes ?? item.arrival?.minutes ?? null,
+        load: item.load ?? item.arrival?.load ?? null,
+        is_wab: item.is_wab ?? item.arrival?.is_wab ?? false,
+      };
+    }
+
+    function mergeStopArrivalData(stop, arrivalData) {
+      const serviceArrivals = (arrivalData?.services || [])
+        .map((item) => normalizeArrivalItem({
+          service: item.service,
+          arrival: item.arrival,
+        }))
+        .filter(Boolean);
+
+      const firstLive = serviceArrivals.find((item) => item.minutes != null) || null;
+      const nearest = normalizeArrivalItem(stop.nearest_arrival) || firstLive;
+
+      return {
+        ...stop,
+        name: stop.name || arrivalData?.stop?.name || stop.code,
+        road: stop.road || arrivalData?.stop?.road || '',
+        nearest_arrival: nearest,
+        arrivals: stop.arrivals && stop.arrivals.length
+          ? stop.arrivals
+          : serviceArrivals.slice(0, 3),
+      };
+    }
+
+    async function loadNearby(lat, lon) {
+      try {
+        setAssistantStatus(t('searching'));
+        const res = await fetch(`${apiBase}/api/v1/nearby-stops?lat=${lat}&lon=${lon}&radius_m=900&limit=6`);
+        const data = await res.json();
+        const baseStops = data.stops || [];
+        const enrichedStops = await Promise.all(baseStops.map(async (stop) => {
+          try {
+            const arrivalRes = await fetch(`${apiBase}/api/v1/stops/${encodeURIComponent(stop.code)}/arrivals`);
+            const arrivalData = await arrivalRes.json();
+            const merged = mergeStopArrivalData(stop, arrivalData);
+            return merged;
+          } catch (err) {
+            return stop;
+          }
+        }));
+
+        state.nearby = enrichedStops;
+        renderNearbyStops(state.nearby);
+        addStopMarkers(state.nearby);
+        setAssistantStatus(stateLang.ui === 'zh' ? `找到 ${state.nearby.length} 个附近站点。` : `Found ${state.nearby.length} nearby stops.`);
+      } catch (err) {
+        console.error(err);
+        setAssistantStatus(stateLang.ui === 'zh' ? '附近站点加载失败。' : 'Failed to load nearby stops.');
+      }
+    }
+
+    async function loadRouteDetails(serviceNo) {
+      try {
+        const res = await fetch(`${apiBase}/api/v1/routes/${encodeURIComponent(serviceNo)}`);
+        const data = await res.json();
+        const directionKeys = Object.keys(data.directions || {});
+        const sample = directionKeys.map(k => data.directions[k][0]?.stop_name).filter(Boolean).slice(0, 3).join(' → ');
+        speak(stateLang.ui === 'zh' ? `线路 ${serviceNo}，${sample}` : `Route ${serviceNo}, ${sample}`);
+        showToast(t('loadRoute', serviceNo));
+      } catch (err) {
+        console.error(err);
+        showToast(t('loadingRouteDetails'));
+      }
+    }
+
+    async function geocodePostcode(postcode) {
+      const q = postcode.trim().replace(/\s+/g, '');
+      if (!q) return null;
+
+      const url = `https://www.onemap.gov.sg/api/common/elastic/search?searchVal=${encodeURIComponent(q)}&returnGeom=Y&getAddrDetails=Y&pageNum=1`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const result = data?.results?.[0];
+      if (!result) return null;
+
+      return {
+        lat: Number(result.LATITUDE),
+        lon: Number(result.LONGITUDE),
+        label: result.ADDRESS || result.SEARCHVAL || q,
+      };
+    }
+
+    async function updateCurrentLocationFromPostcode(postcode) {
+      try {
+        setAssistantStatus(stateLang.ui === 'zh' ? `正在搜索邮编 ${postcode}…` : `Searching postcode ${postcode}…`);
+        const location = await geocodePostcode(postcode);
+        if (!location) {
+          showToast(t('postcodeNotFound'));
+          setAssistantStatus(stateLang.ui === 'zh' ? '未找到该邮编的位置。' : 'No location found for that postcode.');
+          return;
+        }
+
+        state.current = location;
+        userMarker.setLatLng([location.lat, location.lon]);
+        map.flyTo([location.lat, location.lon], 16, { duration: 0.8 });
+        locationLabel.textContent = t('nearLabel', location.label);
+        postcodeInput.value = postcode;
+
+        await loadNearby(location.lat, location.lon);
+        await planJourney();
+        showToast(t('currentUpdated', location.label));
+        setAssistantStatus(t('currentUpdated', location.label));
+      } catch (err) {
+        console.error(err);
+        showToast(stateLang.ui === 'zh' ? '解析邮编失败' : 'Failed to resolve postcode');
+        setAssistantStatus(stateLang.ui === 'zh' ? '无法通过邮编更新当前位置。' : 'Unable to update location from postcode.');
+      }
+    }
+
+        // 在 state 中管理路线图层
+    state.routeLayers = L.featureGroup().addTo(map); 
+
+    function drawRoute(tripData) {
+        state.routeLayers.clearLayers(); // 清除旧路线
+        let allCoords = [];
+
+        if (tripData.mode === "direct") {
+            // 直达方案：绘制单段 Polyline
+            const opt = tripData.options[0];
+            if (opt && opt.polyline) {
+                const line = L.polyline(opt.polyline, {color: '#0f4fd6', weight: 6, opacity: 0.8}).addTo(state.routeLayers);
+                allCoords = opt.polyline;
+            }
+        } else if (tripData.mode === "transfer") {
+            // 转乘方案：绘制两段不同颜色的线
+            const opt = tripData.options[0];
+            if (opt.leg1.polyline) {
+                L.polyline(opt.leg1.polyline, {color: '#0f4fd6', weight: 6}).addTo(state.routeLayers);
+                allCoords = allCoords.concat(opt.leg1.polyline);
+            }
+            if (opt.leg2.polyline) {
+                // 第二段换个颜色区分
+                L.polyline(opt.leg2.polyline, {color: '#10b981', weight: 6, dashArray: '10, 10'}).addTo(state.routeLayers);
+                allCoords = allCoords.concat(opt.leg2.polyline);
+            }
+        }
+
+        // 自动缩放以适应全线
+        if (allCoords.length > 0) {
+            map.fitBounds(state.routeLayers.getBounds(), { padding: [50, 50] });
+        }
+    }
+    async function planJourney() {
+      try {
+        setAssistantStatus(t('planning'));
+        const res = await fetch(`${apiBase}/api/v1/plan`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            s_lat: state.current.lat,
+            s_lon: state.current.lon,
+            e_lat: state.destination.lat,
+            e_lon: state.destination.lon,
+          })
+        });
+        const data = await res.json();
+        state.trip = data;
+
+        // 绘图
+        drawRoute(data);
+
+        const summary = document.getElementById('trip-summary') || (() => {
+          const el = document.createElement('div');
+          el.id = 'trip-summary';
+          el.className = 'panel trip-summary';
+          routeCardsEl.parentElement.insertBefore(el, routeCardsEl);
+          return el;
+        })();
+
+        if (data.type === 'walk') {
+          summary.innerHTML = `
+            <div class="title">${stateLang.ui === 'zh' ? '建议步行' : 'Walk recommended'}</div>
+            <div class="desc">${stateLang.ui === 'zh' ? `目的地较近，步行约 ${data.minutes} 分钟（${data.dist_m}m）` : `Destination is nearby. Walk about ${data.minutes} min (${data.dist_m}m).`}</div>`;
+          routeCardsEl.innerHTML = `<div class="route-card best"><div class="font-extrabold text-xl mb-2">${stateLang.ui === 'zh' ? '无需巴士' : 'No bus needed'}</div><div class="text-slate-500">${data.message || t('tryAnother')}</div></div>`;
+          speak(stateLang.ui === 'zh' ? `目的地很近，建议步行约 ${data.minutes} 分钟。` : `Destination is nearby. Walk about ${data.minutes} minutes.`);
+          showToast(stateLang.ui === 'zh' ? '建议步行' : 'Walk recommended');
+          return;
+        }
+
+        if (data.type === 'none') {
+          summary.innerHTML = `
+            <div class="title">${stateLang.ui === 'zh' ? '暂无直达巴士' : 'No direct bus'}</div>
+            <div class="desc">${data.message || t('tryAnother')}</div>`;
+          renderRouteCards([]);
+          showToast(t('noRoute'));
+          return;
+        }
+
+        const best = data.best || data.options?.[0];
+        summary.innerHTML = `
+          <div class="title">${stateLang.ui === 'zh' ? '最佳推荐路线' : 'Best route recommendation'}</div>
+          <div class="desc">${best ? `${best.service} · ${best.from_name} → ${best.to_name} · ${best.live ? `${best.live.minutes} min, ${best.live.load}` : t('noLiveData')}` : (data.message || t('tryAnother'))}</div>
+          
+          <!--
+          <div class="mt-4 grid gap-3 md:grid-cols-2 text-sm">
+            <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+              <div class="font-bold text-slate-600">${t('startCoords')}</div>
+              <div class="mt-1 font-mono text-slate-900">s_lat: ${Number(state.current.lat).toFixed(6)}</div>
+              <div class="font-mono text-slate-900">s_lon: ${Number(state.current.lon).toFixed(6)}</div>
+            </div>
+            <div class="rounded-2xl bg-slate-50 p-4 border border-slate-200">
+              <div class="font-bold text-slate-600">${t('endCoords')}</div>
+              <div class="mt-1 font-mono text-slate-900">e_lat: ${Number(state.destination.lat).toFixed(6)}</div>
+              <div class="font-mono text-slate-900">e_lon: ${Number(state.destination.lon).toFixed(6)}</div>
+            </div>
+          </div>
+          -->
+
+          <div class="mt-4 rounded-2xl bg-blue-50 p-4 border border-blue-100">
+            <div class="font-bold text-blue-800">${t('suggestedRoute')}</div>
+            <div class="mt-1 text-slate-800">${best ? `${best.service} · ${best.from_name} → ${best.to_name}` : (data.message || t('tryAnother'))}</div>
+          </div>`;
+
+        renderRouteCards(data.options || []);
+        if (best) {
+          const etaText = best.live ? best.live.minutes : (stateLang.ui === 'zh' ? '未知' : 'unknown');
+          speak(t('welcomeSpeak', best.service, etaText));
+          showToast(t('bestOption', best.service));
+        } else {
+          showToast(t('noRoute'));
+        }
+      } catch (err) {
+        console.error(err);
+        setAssistantStatus(stateLang.ui === 'zh' ? '路线规划失败。' : 'Route planning failed.');
+        showToast(stateLang.ui === 'zh' ? '规划失败' : 'Plan failed');
+      }
+    }
+
+    async function focusStop(stop) {
+      map.flyTo([stop.latitude, stop.longitude], 16, { duration: 0.8 });
+      userMarker.setLatLng([stop.latitude, stop.longitude]);
+      state.current = { lat: stop.latitude, lon: stop.longitude, label: stop.name };
+      locationLabel.textContent = t('nearLabel', stop.name);
+      setAssistantStatus(t('focusedOn', stop.name));
+      await loadNearby(stop.latitude, stop.longitude);
+      await planJourney();
+    }
+
+    async function searchStops(query) {
+      const q = query.trim();
+      if (!q) return;
+      try {
+        const res = await fetch(`${apiBase}/api/v1/search-stops?q=${encodeURIComponent(q)}&limit=5`);
+        const data = await res.json();
+        if (data.results?.length) {
+          const first = data.results[0];
+          await focusStop({ latitude: first.latitude, longitude: first.longitude, name: first.name, code: first.code });
+        } else {
+          showToast(t('noMatch'));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleVoiceCommand() {
+      try {
+        setAssistantStatus(t('listening'));
+        const text = await startSpeechRecognition();
+        if (!text) throw new Error('Empty transcript');
+        setAssistantStatus(t('heard', text));
+        showToast(text);
+        const destination = await resolveLocationFromText(text);
+        if (destination) {
+          const updated = await setDestinationLocation(destination, text);
+          if (updated) {
+            await planJourney();
+          }
+          return;
+        }
+
+        await searchStops(text);
+      } catch (err) {
+        console.error(err);
+        setAssistantStatus(t('voiceError'));
+        showToast(t('voiceError'));
+      }
+    }
+
+    function initVoice() {
+      if (!window.SpeechRecognition && !window.webkitSpeechRecognition && !getSpeechSdk()) {
+        micBtn.disabled = true;
+        micBtn.title = 'Speech recognition not supported';
+        setSpeechStatus('No supported speech engine in this browser', 'error');
+        return;
+      }
+
+      micBtn.addEventListener('click', handleVoiceCommand);
+
+      if (speechEngineSelect) {
+        speechEngineSelect.addEventListener('change', () => {
+          setSpeechSelection(speechEngineSelect.value, getSelectedSpeechLang());
+        });
+      }
+
+      if (speechLangSelect) {
+        speechLangSelect.addEventListener('change', () => {
+          applySpeechLanguageSelection(speechLangSelect.value);
+        });
+      }
+    }
+
+    langZhBtn.addEventListener('click', () => setLanguage('zh'));
+    langEnBtn.addEventListener('click', () => setLanguage('en'));
+
+    postcodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') updateCurrentLocationFromPostcode(postcodeInput.value);
+    });
+    postcodeInput.addEventListener('change', () => updateCurrentLocationFromPostcode(postcodeInput.value));
+    startJourneyBtn.addEventListener('click', planJourney);
+
+    initVoice();
+    loadSpeechConfig().finally(() => {
+      setSpeechSelection(speechState.enginePreference, speechState.mode);
+      applySpeechLanguageSelection(speechState.mode);
+      setSpeechButtonsEnabled(true);
+    });
+    setLanguage('zh');
+    loadNearby(defaultLocation.lat, defaultLocation.lon);
+    planJourney();
+  </script>
+</body>
+</html>

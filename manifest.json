@@ -1,0 +1,9 @@
+{
+  "name": "AI 公交语音助手 MVP",
+  "short_name": "公交助手",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#081120",
+  "theme_color": "#0f172a",
+  "icons": []
+}
