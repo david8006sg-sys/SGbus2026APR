@@ -408,6 +408,14 @@
       if (!('speechSynthesis' in window)) return;
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = stateLang.speech === 'en' ? 'en-US' : 'zh-CN';
+      // Select female voice for English speech (same as Chinese default female)
+      const voices = window.speechSynthesis.getVoices();
+      if (stateLang.speech === 'en') {
+        const femaleVoice = voices.find(v => v.lang.startsWith('en') && /female/i.test(v.name));
+        if (femaleVoice) {
+          utter.voice = femaleVoice;
+        }
+      }
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     }

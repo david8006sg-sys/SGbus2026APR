@@ -7,7 +7,7 @@ from collections import defaultdict
 
 class BusSmartEngine:
     def __init__(self):
-        # 路径确保在当前目录下
+        # 路径确保在当前目录下   
         base_path = os.path.dirname(__file__)
         with open(os.path.join(base_path, "bus_routes.json"), 'r', encoding='utf-8') as f:
             self.routes = json.load(f)
