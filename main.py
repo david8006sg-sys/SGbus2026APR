@@ -113,3 +113,19 @@ async def plan(request: TripRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.get("/api/v1/news/traffic_incidents")
+async def traffic_incidents():
+    return {"value": engine.get_traffic_incidents()}
+
+@app.get("/api/v1/news/train_alerts")
+async def train_alerts():
+    return {"value": engine.get_train_service_alerts()}
+
+@app.get("/api/v1/news/facilities_maintenance")
+async def facilities_maintenance():
+    return {"value": engine.get_facilities_maintenance()}
+
+@app.get("/api/v1/weather/metadata")
+async def weather_metadata(collection_id: str = Query(..., min_length=1)):
+    return {"metadata": engine.get_weather_metadata(collection_id)}
