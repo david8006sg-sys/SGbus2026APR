@@ -5,6 +5,8 @@ import os
 from datetime import datetime, timezone
 from collections import defaultdict
 
+LTA_API_BASE = "https://datamall2.mytransport.sg/ltaodataservice"
+
 class BusSmartEngine:
     def __init__(self):
         # 路径确保在当前目录下     
@@ -217,3 +219,42 @@ class BusSmartEngine:
 
     def plan_trip(self, s_lat, s_lon, e_lat, e_lon):
         return self.best_route_candidates(s_lat, s_lon, e_lat, e_lon)
+
+    def get_traffic_incidents(self):
+        api_key = os.getenv("LTA_API_KEY")
+        if not api_key:
+            return []
+        headers = {"AccountKey": api_key, "Accept": "application/json"}
+        try:
+            r = requests.get(f"{LTA_API_BASE}/TrafficIncidents", headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            return data.get("value", [])
+        except Exception:
+            return []
+
+    def get_train_service_alerts(self):
+        api_key = os.getenv("LTA_API_KEY")
+        if not api_key:
+            return []
+        headers = {"AccountKey": api_key, "Accept": "application/json"}
+        try:
+            r = requests.get(f"{LTA_API_BASE}/TrainServiceAlerts", headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            return data.get("value", [])
+        except Exception:
+            return []
+
+    def get_facilities_maintenance(self):
+        api_key = os.getenv("LTA_API_KEY")
+        if not api_key:
+            return []
+        headers = {"AccountKey": api_key, "Accept": "application/json"}
+        try:
+            r = requests.get(f"{LTA_API_BASE}/v2/FacilitiesMaintenance", headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            return data.get("value", [])
+        except Exception:
+            return []

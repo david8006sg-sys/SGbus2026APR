@@ -23,7 +23,21 @@
     html, body { height:100%; }
     body { margin:0; font-family: Inter, system-ui, sans-serif; background:var(--bg); color:var(--text); }
     .app-shell { min-height:100vh; display:grid; grid-template-columns: 320px minmax(0, 1fr) 360px; grid-template-rows:auto 1fr auto; }
-    .topbar { grid-column:1 / -1; height:88px; display:flex; align-items:center; justify-content:space-between; padding:0 28px; border-bottom:1px solid var(--border); background:rgba(255,255,255,.8); backdrop-filter: blur(10px); }
+    .topbar { position:relative; grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; padding:0 28px 48px; border-bottom:1px solid var(--border); background:rgba(255,255,255,.8); backdrop-filter: blur(10px); }
+    .news-ticker { position:absolute; left:50%; bottom:-28px; transform:translateX(-50%); width:min(980px, calc(100% - 48px)); background:rgba(15,23,42,.92); border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:7px 20px; display:flex; align-items:center; gap:18px; color:#fff; box-shadow:0 18px 40px rgba(15,23,42,.35); z-index:3; }
+    .news-ticker:not(.has-content) { opacity:.75; }
+    .news-label { font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:#93a1be; white-space:nowrap; }
+    .news-track { flex:1; overflow:hidden; }
+    .news-track-inner { display:inline-flex; gap:32px; white-space:nowrap; font-size:14px; }
+    .news-track-inner.ticker-anim { animation: ticker-scroll 32s linear infinite; }
+    .news-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); }
+    .news-pill .news-type { font-weight:700; color:#fefefe; }
+    .news-pill .news-text { color:#f1f5f9; }
+    .news-track-inner .news-empty { color:rgba(255,255,255,.7); font-weight:500; }
+    @keyframes ticker-scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
     .brand { font-size:32px; font-style:italic; font-weight:800; color:#1e3a8a; letter-spacing:-.04em; }
     .top-nav { display:flex; gap:36px; align-items:center; font-size:20px; font-weight:700; color:#475569; }
     .top-nav .active { color:var(--blue); position:relative; }
@@ -104,6 +118,11 @@
         <span id="nav-live-map">Live Map</span>
         <span id="nav-accessibility">Accessibility</span>
       </nav>
+      <div class="news-ticker" id="news-ticker">
+        <span class="news-label">Transit Alerts</span>
+        <div class="news-track"><div class="news-track-inner" id="news-track"></div></div>
+        <div class="news-track" style="flex:0 0 auto;"><span class="news-type" id="news-updated">Fetching…</span></div>
+      </div>
       <div class="flex items-center gap-6 text-slate-600">
         <div class="lang-switch" role="tablist" aria-label="Language switch">
           <button id="lang-zh-btn" class="active" type="button">中文</button>
@@ -251,6 +270,16 @@
     const toast = document.getElementById('toast');
     const langZhBtn = document.getElementById('lang-zh-btn');
     const langEnBtn = document.getElementById('lang-en-btn');
+    const newsTickerEl = document.getElementById('news-ticker');
+    const newsTrackInner = document.getElementById('news-track');
+    const newsUpdated = document.getElementById('news-updated');
+    const newsApiBase = apiBase || '';
+    const newsEndpoints = [
+      { type: 'Traffic', path: '/api/v1/news/traffic_incidents' },
+      { type: 'Train', path: '/api/v1/news/train_alerts' },
+      { type: 'Facilities', path: '/api/v1/news/facilities_maintenance' },
+    ];
+    const newsRefreshIntervalMs = 120000;
     let recognitionInstance = null;
 
     const i18n = {
@@ -495,6 +524,82 @@
 
     function setAssistantStatus(text) {
       assistantStatus.textContent = text;
+    }
+
+    function formatAlertText(item, type) {
+      const title = item.Title || item.Alert || item.IncidentDescription || item.Description || item.Message || `${type} update`;
+      const location = item.Location || item.RoadName || item.FacilityName || item.StationName || item.Line;
+      const extra = item.Summary || item.Details || item.Remarks;
+      const parts = [title];
+      if (location) parts.push(location);
+      if (extra && !parts.includes(extra)) parts.push(extra);
+      return parts.filter(Boolean).join(' · ');
+    }
+
+    function alertTimestamp(item) {
+      const timestamps = [item.LastUpdated, item.Timestamp, item.EffectiveDateTime, item.UpdatedOn, item.StartTime];
+      for (const stamp of timestamps) {
+        if (stamp) {
+          const parsed = Date.parse(stamp);
+          if (!Number.isNaN(parsed)) {
+            return parsed;
+          }
+        }
+      }
+      return Date.now();
+    }
+
+    function renderNewsTicker(alerts) {
+      if (!alerts.length) {
+        newsTrackInner.innerHTML = '<span class="news-empty">No active alerts</span>';
+        newsTickerEl.classList.remove('has-content');
+        newsTrackInner.classList.remove('ticker-anim');
+        newsUpdated.textContent = 'Updated —';
+        return;
+      }
+      const uniqueAlerts = alerts.slice().sort((a, b) => b.updated - a.updated);
+      const pills = uniqueAlerts.map((alert) => `
+        <span class="news-pill">
+          <span class="news-type">${alert.type}</span>
+          <span class="news-text">${alert.text}</span>
+        </span>
+      `).join('');
+      newsTrackInner.innerHTML = pills + (uniqueAlerts.length > 1 ? pills : '');
+      newsTrackInner.classList.toggle('ticker-anim', uniqueAlerts.length > 1);
+      newsTickerEl.classList.add('has-content');
+      const updatedAt = new Date(uniqueAlerts[0].updated);
+      newsUpdated.textContent = `Updated ${updatedAt.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    async function fetchNews(path) {
+      try {
+        const res = await fetch(`${newsApiBase}${path}`);
+        if (!res.ok) throw new Error('fetch failed');
+        const data = await res.json();
+        return data.value || [];
+      } catch (err) {
+        console.warn('news fetch failed', err);
+        return [];
+      }
+    }
+
+    async function refreshNewsTicker() {
+      const alertPromises = newsEndpoints.map(async (endpoint) => {
+        const items = await fetchNews(endpoint.path);
+        return items.map(item => ({
+          type: endpoint.type,
+          text: formatAlertText(item, endpoint.type),
+          updated: alertTimestamp(item),
+        }));
+      });
+      const alertArrays = await Promise.all(alertPromises);
+      const aggregated = alertArrays.flat().filter(alert => alert.text);
+      renderNewsTicker(aggregated);
+    }
+
+    function startNewsTicker() {
+      refreshNewsTicker();
+      setInterval(refreshNewsTicker, newsRefreshIntervalMs);
     }
 
     function clearMarkers() {
@@ -866,6 +971,7 @@
 
     initVoice();
     setLanguage('zh');
+    startNewsTicker();
     loadNearby(defaultLocation.lat, defaultLocation.lon);
     planJourney();
   </script>
