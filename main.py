@@ -126,6 +126,20 @@ async def train_alerts():
 async def facilities_maintenance():
     return {"value": engine.get_facilities_maintenance()}
 
-@app.get("/api/v1/weather/metadata")
-async def weather_metadata(collection_id: str = Query(..., min_length=1)):
-    return {"metadata": engine.get_weather_metadata(collection_id)}
+@app.get("/api/v1/news/air_temperature")
+async def air_temperature(lat: float = Query(...), lon: float = Query(...)):
+    """
+    Return real-time air temperature at the nearest station for the given lat/lon.
+    """
+    temp = engine.get_air_temperature(lat, lon)
+    if temp is None:
+        return {"value": []}
+    return {"value": [{"value": temp}]}
+
+@app.get("/api/v1/news/2hr_forecast")
+async def two_hr_forecast():
+    """
+    Return 2-hour weather forecast for Singapore regions.
+    """
+    forecasts = engine.get_two_hr_forecast()
+    return {"value": forecasts}

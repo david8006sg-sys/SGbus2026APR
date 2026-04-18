@@ -74,6 +74,7 @@ docker run -p 8000:8000 -e LTA_API_KEY=你的LTA_API_KEY kinetic-concierge
 
 ```bash
 set LTA_API_KEY=你的LTA_API_KEY
+set DATAGOVSG=你的DATA_GOV_SG_API_KEY
 set LTA_REFRESH_INTERVAL=900
 ```
 

@@ -258,3 +258,48 @@ class BusSmartEngine:
             return data.get("value", [])
         except Exception:
             return []
+
+    def get_air_temperature(self, lat=None, lon=None):
+        """
+        Fetch real-time air temperature data and return the temperature at the nearest station to the given lat/lon.
+        Returns None if unavailable.
+        """
+        api_key = os.getenv("DATAGOVSG")
+        if not api_key:
+            return None
+        headers = {"X-Api-Key": api_key}
+        try:
+            r = requests.get(f"https://api-open.data.gov.sg/v2/real-time/api/air-temperature", headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json().get("items", [])[0]
+            readings = data.get("readings", [])
+            if not readings:
+                return None
+            # If lat/lon provided, find nearest; else, average
+            if lat is not None and lon is not None:
+                def dist(r):
+                    return self.haversine(lat, lon, r.get('latitude'), r.get('longitude'))
+                nearest = min(readings, key=dist)
+                return nearest.get('value')
+            # fallback to average
+            vals = [r.get('value') for r in readings if 'value' in r]
+            return sum(vals)/len(vals) if vals else None
+        except Exception:
+            return None
+
+    def get_two_hr_forecast(self):
+        """
+        Fetch 2-hour weather forecast for Singapore regions.
+        Returns list of {'area': ..., 'forecast': ...}.
+        """
+        api_key = os.getenv("DATAGOVSG")
+        if not api_key:
+            return []
+        headers = {"X-Api-Key": api_key}
+        try:
+            r = requests.get("https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast", headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json().get("items", [{}])[0]
+            return data.get("forecasts", [])
+        except Exception:
+            return []

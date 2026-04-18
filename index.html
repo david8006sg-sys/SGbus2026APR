@@ -275,6 +275,9 @@
     const newsUpdated = document.getElementById('news-updated');
     const newsApiBase = apiBase || '';
     const newsEndpoints = [
+      { type: 'Forecast', path: '/api/v1/news/2hr_forecast' },
+      { type: 'Weather', path: '/api/v1/news/air_temperature' },
+      { type: 'Traffic', path: '/api/v1/news/traffic_incidents' },
       { type: 'Train', path: '/api/v1/news/train_alerts' },
       { type: 'Facilities', path: '/api/v1/news/facilities_maintenance' },
     ];
@@ -585,11 +588,27 @@
     async function refreshNewsTicker() {
       const alertPromises = newsEndpoints.map(async (endpoint) => {
         const items = await fetchNews(endpoint.path);
-        return items.map(item => ({
-          type: endpoint.type,
-          text: formatAlertText(item, endpoint.type),
-          updated: alertTimestamp(item),
-        }));
+        return items.map(item => {
+          if (endpoint.type === 'Forecast') {
+            return {
+              type: endpoint.type,
+              text: `${item.area}: ${item.forecast}`,
+              updated: Date.now(),
+            };
+          }
+          if (endpoint.type === 'Weather') {
+            return {
+              type: endpoint.type,
+              text: `${item.value?.toFixed?.(1) ?? item.value}°C`,
+              updated: Date.now(),
+            };
+          }
+          return {
+            type: endpoint.type,
+            text: formatAlertText(item, endpoint.type),
+            updated: alertTimestamp(item),
+          };
+        });
       });
       const alertArrays = await Promise.all(alertPromises);
       const aggregated = alertArrays.flat().filter(alert => alert.text);
