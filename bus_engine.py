@@ -365,7 +365,6 @@ class BusSmartEngine:
             return []
         # Use correct header name for Data.gov.sg API
         headers = {"api-key": api_key}
-
         
         try:
             
@@ -388,6 +387,7 @@ class BusSmartEngine:
             )
 
             area_name = closest_area['name']
+            area_name = 'changi'
             forecast  = forecast_lookup.get(area_name, 'N/A')
             #return area_name, forecast
 
