@@ -576,15 +576,22 @@
     async function fetchNews(path) {
       try {
         const res = await fetch(`${newsApiBase}${path}`);
-        if (!res.ok) throw new Error('fetch failed');
+        if (!res.ok) throw new Error(`fetch failed (${res.status})`);
         const data = await res.json();
         console.debug(`News API response [${path}]:`, data);
-        // Ensure we always return an array
-        const val = data.value;
-        return Array.isArray(val) ? val : (val != null ? [val] : []);
+
+        // Handle every common response shape:
+        // root array | .value | .items | .results | .data | single object
+        if (Array.isArray(data)) return data;
+        for (const key of ['value', 'items', 'results', 'data']) {
+          if (Array.isArray(data[key])) return data[key];
+          if (data[key] != null)        return [data[key]];
+        }
+        // Fallback: wrap the whole object as a single item
+        return typeof data === 'object' && data !== null ? [data] : [];
       } catch (err) {
         console.warn('news fetch failed', err);
-        return [];
+        return [];  // always return an array so .map() never throws
       }
     }
 
