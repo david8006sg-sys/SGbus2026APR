@@ -42,7 +42,7 @@ class BusSmartEngine:
         dphi, dlamb = math.radians(float(lat2-lat1)), math.radians(float(lon2-lon1))
         a = math.sin(dphi/2)**2 + math.cos(p1)*math.cos(p2)*math.sin(dlamb/2)**2
         return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
-
+   
     def _parse_arrival_payload(self, payload):
         services = payload.get("Services", []) if isinstance(payload, dict) else []
         arrival_map = {}
@@ -394,11 +394,5 @@ class BusSmartEngine:
             return forecasts
         except Exception:
             return []
-        
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 6371
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
-        return R * 2 * math.asin(math.sqrt(a))
+
 
