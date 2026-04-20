@@ -314,10 +314,12 @@ class BusSmartEngine:
         Fetch real-time air temperature data and return the temperature at the nearest station to the given lat/lon.
         Returns None if unavailable.
         """
-        api_key = os.getenv("DATAGOVSG")
+        # Use DATAGOVSG key or fallback to LTA_API_KEY for compatibility
+        api_key = os.getenv("DATAGOVSG") or os.getenv("LTA_API_KEY")
         if not api_key:
             return None
-        headers = {"X-Api-Key": api_key}
+        # Use correct header name for Data.gov.sg API
+        headers = {"api-key": api_key}
         try:
             r = requests.get(f"https://api-open.data.gov.sg/v2/real-time/api/air-temperature", headers=headers, timeout=5)
             r.raise_for_status()
@@ -326,6 +328,10 @@ class BusSmartEngine:
             print(f"DEBUG: 站点temerature {readings} ")
             if not readings:
                 return None
+            # Prefer reading from station S24 if available
+            for rec in readings:
+                if rec.get('stationId') == 'S24':
+                    return rec.get('value')
             # If lat/lon provided, find nearest; else, average
             if lat is not None and lon is not None:
                 def dist(r):
@@ -343,10 +349,12 @@ class BusSmartEngine:
         Fetch 2-hour weather forecast for Singapore regions.
         Returns list of {'area': ..., 'forecast': ...}.
         """
-        api_key = os.getenv("DATAGOVSG")
+        # Use DATAGOVSG key or fallback to LTA_API_KEY for compatibility
+        api_key = os.getenv("DATAGOVSG") or os.getenv("LTA_API_KEY")
         if not api_key:
             return []
-        headers = {"X-Api-Key": api_key}
+        # Use correct header name for Data.gov.sg API
+        headers = {"api-key": api_key}
         try:
             r = requests.get("https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast", headers=headers, timeout=5)
             r.raise_for_status()
