@@ -29,7 +29,7 @@
     .news-label { font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:#93a1be; white-space:nowrap; }
     .news-track { flex:1; overflow:hidden; }
     .news-track-inner { display:inline-flex; gap:32px; white-space:nowrap; font-size:14px; }
-    .news-track-inner.ticker-anim { animation: ticker-scroll 128s linear infinite; }
+    .news-track-inner.ticker-anim { animation: ticker-scroll 512s linear infinite; }
     .news-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); }
     .news-pill .news-type { font-weight:700; color:#fefefe; }
     .news-pill .news-text { color:#f1f5f9; }
@@ -127,6 +127,10 @@
         <div class="lang-switch" role="tablist" aria-label="Language switch">
           <button id="lang-zh-btn" class="active" type="button">中文</button>
           <button id="lang-en-btn" type="button">EN</button>
+        </div>
+        <div id="weather-info" class="ml-4 flex gap-2 items-center text-sm text-slate-700">
+          <span id="temp-display">--°C</span>
+          <span id="forecast-display">Loading forecast...</span>
         </div>
         <button class="w-10 h-10 rounded-full hover:bg-slate-100 grid place-items-center" title="Profile">◉</button>
       </div>
@@ -275,14 +279,32 @@
     const newsUpdated = document.getElementById('news-updated');
     const newsApiBase = apiBase || '';
     const newsEndpoints = [
-      { type: 'Forecast', path: '/api/v1/news/2hr_forecast' },
-      { type: 'Weather', path: `/api/v1/news/air_temperature?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}` },
+      // Forecast and Weather moved to separate display
       { type: 'Traffic', path: '/api/v1/news/traffic_incidents' },
       { type: 'Train', path: '/api/v1/news/train_alerts' },
       { type: 'Facilities', path: '/api/v1/news/facilities_maintenance' },
     ];
     const newsRefreshIntervalMs = 120000;
+    const weatherRefreshIntervalMs = newsRefreshIntervalMs;
     let recognitionInstance = null;
+
+    // Fetch and update temperature and 2-hour forecast display
+    async function updateWeatherInfo() {
+      try {
+        const [tempRes, forecastRes] = await Promise.all([
+          fetch(`${newsApiBase}/api/v1/news/air_temperature?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}`),
+          fetch(`${newsApiBase}/api/v1/news/2hr_forecast`)
+        ]);
+        const tempData = await tempRes.json();
+        const forecastData = await forecastRes.json();
+        const tempVal = Array.isArray(tempData.value) && tempData.value.length ? tempData.value[0].value : null;
+        document.getElementById('temp-display').textContent = tempVal != null ? `${tempVal.toFixed(1)}°C` : '--°C';
+        const forecastItem = Array.isArray(forecastData.value) && forecastData.value.length ? forecastData.value[0] : null;
+        document.getElementById('forecast-display').textContent = forecastItem ? `${forecastItem.area}: ${forecastItem.forecast}` : 'No forecast';
+      } catch (err) {
+        console.warn('weather info fetch failed', err);
+      }
+    }
 
     const i18n = {
       zh: {
@@ -1003,6 +1025,9 @@
     startNewsTicker();
     loadNearby(defaultLocation.lat, defaultLocation.lon);
     planJourney();
+    // Initialize weather info display and refresh periodically
+    updateWeatherInfo();
+    setInterval(updateWeatherInfo, weatherRefreshIntervalMs);
   </script>
 </body>
 </html>
