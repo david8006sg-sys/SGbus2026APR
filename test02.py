@@ -31,6 +31,7 @@ def get_forecast_by_location(lat, lon):
     )
 
     area_name = closest_area['name']
+    area_name = 'Changi'
     forecast  = forecast_lookup.get(area_name, 'N/A')
     return area_name, forecast
 
