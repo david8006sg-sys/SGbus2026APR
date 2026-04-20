@@ -314,18 +314,27 @@ class BusSmartEngine:
         Fetch real-time air temperature data and return the temperature at the nearest station to the given lat/lon.
         Returns None if unavailable.
         """
+
+   
         # Use DATAGOVSG key or fallback to LTA_API_KEY for compatibility
         api_key = os.getenv("DATAGOVSG") or os.getenv("LTA_API_KEY")
-        if not api_key:
-            return None
+        #if not api_key:
+        #    return None
         # Use correct header name for Data.gov.sg API
+        api_key = "v2:c301d3e632007d24480125f32e20315e53467c6bca4707f4cc08a8dbe9353a74:uR417bu2gr6LnnYc14EzFWgRT9iHKsgb"
         headers = {"api-key": api_key}
         try:
             r = requests.get(f"https://api-open.data.gov.sg/v2/real-time/api/air-temperature", headers=headers, timeout=5)
             r.raise_for_status()
-            data = r.json().get("items", [])[0]
-            readings = data.get("readings", [])
-            print(f"DEBUG: 站点temerature {readings} ")
+            #data = r.json().get("items", [])[0]
+            #readings = data.get("readings", [])
+                        
+            # Navigate to the readings list
+            data = r.json()
+            readings = data['data']['readings'][0]['data']
+            value = next((rec['value'] for rec in readings if rec.get('stationId') == 'S24'), None)
+            print(value)  # 30.5
+        
             if not readings:
                 return None
             # Prefer reading from station S24 if available
@@ -356,22 +365,40 @@ class BusSmartEngine:
             return []
         # Use correct header name for Data.gov.sg API
         headers = {"api-key": api_key}
+
+        
         try:
+            
+             # ✅ Fetch data FIRST
             r = requests.get("https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast", headers=headers, timeout=5)
             r.raise_for_status()
-            data = r.json().get("items", [{}])[0]
-            region_meta = data.get("region_metadata", [])
-            forecasts = data.get("forecasts", [])
-            # If lat/lon provided, find nearest region and return its forecast
-            if lat is not None and lon is not None and region_meta and forecasts:
-                def dist(meta):
-                    loc = meta.get("label_location", {})
-                    return self.haversine(lat, lon, loc.get("latitude"), loc.get("longitude"))
-                nearest = min(region_meta, key=dist)
-                area = nearest.get("name")
-                for f in forecasts:
-                    if f.get("area") == area:
-                        return f.get("forecast")
+            data = r.json()
+
+            # ✅ Access data AFTER fetching
+            area_metadata = data['data']['area_metadata']
+            forecasts     = data['data']['items'][0]['forecasts']  # ✅ correct path
+
+            # Build lookup dict: area name → forecast
+            forecast_lookup = {f['area']: f['forecast'] for f in forecasts}
+
+            # Find closest area by distance
+            closest_area = min(
+                area_metadata,
+                key=lambda a: haversine(lat, lon, a['label_location']['latitude'], a['label_location']['longitude'])
+            )
+
+            area_name = closest_area['name']
+            forecast  = forecast_lookup.get(area_name, 'N/A')
+            #return area_name, forecast
+
             return forecasts
         except Exception:
             return []
+        
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+        return R * 2 * math.asin(math.sqrt(a))
+
