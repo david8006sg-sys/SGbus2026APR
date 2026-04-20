@@ -395,7 +395,7 @@ class BusSmartEngine:
 
             #eturn forecast
             # ✅ Return format that matches forecastData.value[0]
-            return {"value": [{"area": area_name, "forecast": forecast}]}
+            return {[{"area": area_name, "forecast": forecast}]}
 
         except Exception:
             print(f"Forecast error: {e}")
