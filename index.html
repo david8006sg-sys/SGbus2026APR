@@ -291,13 +291,28 @@
     // Fetch and update temperature and 2-hour forecast display
     async function updateWeatherInfo() {
       try {
+        const tempUrl = `${newsApiBase}/api/v1/news/air_temperature?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}`;
+        const forecastUrl = `${newsApiBase}/api/v1/news/2hr_forecast`;
+        console.debug('updateWeatherInfo URLs:', tempUrl, forecastUrl);
+
         const [tempRes, forecastRes] = await Promise.all([
-          fetch(`${newsApiBase}/api/v1/news/air_temperature?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}`),
-          fetch(`${newsApiBase}/api/v1/news/2hr_forecast`)
+          fetch(tempUrl),
+          fetch(forecastUrl)
         ]);
+        console.debug('updateWeatherInfo raw responses:', tempRes, forecastRes);
+
         const tempData = await tempRes.json();
+        console.debug('updateWeatherInfo tempData:', tempData);
         const forecastData = await forecastRes.json();
-        const tempVal = Array.isArray(tempData.value) && tempData.value.length ? tempData.value[0].value : null;
+        console.debug('updateWeatherInfo forecastData:', forecastData);
+
+        // Handle both array and root object 'value' shapes for temperature
+        let tempVal = null;
+        if (Array.isArray(tempData.value) && tempData.value.length) {
+          tempVal = tempData.value[0].value;
+        } else if (typeof tempData.value === 'number') {
+          tempVal = tempData.value;
+        }
         document.getElementById('temp-display').textContent = tempVal != null ? `${tempVal.toFixed(1)}°C` : '--°C';
         const forecastItem = Array.isArray(forecastData.value) && forecastData.value.length ? forecastData.value[0] : null;
         document.getElementById('forecast-display').textContent = forecastItem ? `${forecastItem.area}: ${forecastItem.forecast}` : 'No forecast';
