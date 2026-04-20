@@ -45,6 +45,10 @@
       stroke-dasharray: 10, 10;
       animation: dash 1s linear infinite;
     }
+    /* 确保自定义图标始终在最上层 */
+    .custom-pin {
+        z-index: 1000 !important;
+    }
     .brand { font-size:32px; font-style:italic; font-weight:800; color:#1e3a8a; letter-spacing:-.04em; }
     .top-nav { display:flex; gap:36px; align-items:center; font-size:20px; font-weight:700; color:#475569; }
     .top-nav .active { color:var(--blue); position:relative; }
@@ -263,11 +267,24 @@
       routePath: null,
     };
 
+    // 2. 初始化图标 (放在最前面，防止 ReferenceError)
+    const userIcon = L.divIcon({ 
+        className: 'custom-pin', 
+        html: '<div style="background:#0f4fd6; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px rgba(15,79,214,0.5)"></div>',
+        iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
+    const destIcon = L.divIcon({ 
+        className: 'custom-pin', 
+        html: '<div style="background:#ef4444; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 0 15px rgba(239,68,68,0.5)"></div>',
+        iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([defaultLocation.lat, defaultLocation.lon], 15);
     L.tileLayer('https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png', { detectRetina: true }).addTo(map);
 
-    const userIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:999px;background:#0f4fd6;border:3px solid white;box-shadow:0 0 0 4px rgba(15,79,214,.2)"></div>', iconSize: [18,18], iconAnchor: [9,9] });
-    const destIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:999px;background:#cf1717;border:3px solid white;box-shadow:0 0 0 4px rgba(207,23,23,.18)"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+    //const userIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:999px;background:#0f4fd6;border:3px solid white;box-shadow:0 0 0 4px rgba(15,79,214,.2)"></div>', iconSize: [18,18], iconAnchor: [9,9] });
+    //const destIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:999px;background:#cf1717;border:3px solid white;box-shadow:0 0 0 4px rgba(207,23,23,.18)"></div>', iconSize: [18,18], iconAnchor: [9,9] });
 
     const userMarker = L.marker([state.current.lat, state.current.lon], { icon: userIcon }).addTo(map);
     const destMarker = L.marker([state.destination.lat, state.destination.lon], { icon: destIcon }).addTo(map);
@@ -582,7 +599,9 @@
     async function setDestinationLocation(location, sourceText = '') {
       if (!location) return false;
       state.destination = location;
-      destMarker.setLatLng([location.lat, location.lon]);
+      //destMarker.setLatLng([location.lat, location.lon]);
+      // 💡 确保更新坐标的同时，保持图标不变
+      destMarker.setLatLng([location.lat, location.lon]).setIcon(destIcon);
       map.flyTo([location.lat, location.lon], 15, { duration: 0.5 });
       const suffix = sourceText ? ` (${sourceText})` : '';
       showToast(`${stateLang.ui === 'zh' ? '目的地已更新' : 'Destination updated'}: ${location.label}${suffix}`);
