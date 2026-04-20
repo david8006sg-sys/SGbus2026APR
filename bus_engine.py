@@ -323,6 +323,7 @@ class BusSmartEngine:
             r.raise_for_status()
             data = r.json().get("items", [])[0]
             readings = data.get("readings", [])
+            print(f"DEBUG: 站点temerature {readings} ")
             if not readings:
                 return None
             # If lat/lon provided, find nearest; else, average
@@ -350,6 +351,7 @@ class BusSmartEngine:
             r = requests.get("https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast", headers=headers, timeout=5)
             r.raise_for_status()
             data = r.json().get("items", [{}])[0]
+            print(f"DEBUG: get_two_hr_forecast {data} ")
             return data.get("forecasts", [])
         except Exception:
             return []
