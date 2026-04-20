@@ -366,7 +366,7 @@ class BusSmartEngine:
         # Use correct header name for Data.gov.sg API
         api_key = "v2:c301d3e632007d24480125f32e20315e53467c6bca4707f4cc08a8dbe9353a74:uR417bu2gr6LnnYc14EzFWgRT9iHKsgb"
         headers = {"api-key": api_key}
-        return 'abc'
+
         try:
             
              # ✅ Fetch data FIRST
@@ -393,8 +393,13 @@ class BusSmartEngine:
             forecast  = forecast_lookup.get(area_name, 'N/A')
             #return area_name, forecast
 
-            return forecast
+            #eturn forecast
+            # ✅ Return format that matches forecastData.value[0]
+            return {"value": [{"area": area_name, "forecast": forecast}]}
+
         except Exception:
-            return []
+            print(f"Forecast error: {e}")
+            return {"value": []}   # ✅ empty array so forecastItem becomes null safely
+            
 
 
