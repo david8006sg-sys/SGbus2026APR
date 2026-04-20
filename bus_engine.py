@@ -361,9 +361,10 @@ class BusSmartEngine:
         """
         # Use DATAGOVSG key or fallback to LTA_API_KEY for compatibility
         api_key = os.getenv("DATAGOVSG") or os.getenv("LTA_API_KEY")
-        if not api_key:
-            return []
+        #if not api_key:
+        #    return []
         # Use correct header name for Data.gov.sg API
+        api_key = "v2:c301d3e632007d24480125f32e20315e53467c6bca4707f4cc08a8dbe9353a74:uR417bu2gr6LnnYc14EzFWgRT9iHKsgb"
         headers = {"api-key": api_key}
         
         try:
