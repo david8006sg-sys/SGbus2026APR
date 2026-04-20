@@ -388,10 +388,10 @@ class BusSmartEngine:
 
             area_name = closest_area['name']
             area_name = 'Changi'
-            forecasts  = forecast_lookup.get(area_name, 'N/A')
+            forecast  = forecast_lookup.get(area_name, 'N/A')
             #return area_name, forecast
 
-            return forecasts
+            return forecast
         except Exception:
             return []
 
