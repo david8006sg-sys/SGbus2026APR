@@ -384,7 +384,7 @@ class BusSmartEngine:
             # Find closest area by distance
             closest_area = min(
                 area_metadata,
-                key=lambda a: haversine(lat, lon, a['label_location']['latitude'], a['label_location']['longitude'])
+                key=lambda a: self.haversine(lat, lon, a['label_location']['latitude'], a['label_location']['longitude'])
             )
 
             area_name = closest_area['name']
