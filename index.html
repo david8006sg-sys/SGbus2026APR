@@ -578,6 +578,7 @@
         const res = await fetch(`${newsApiBase}${path}`);
         if (!res.ok) throw new Error('fetch failed');
         const data = await res.json();
+        console.debug(`News API response [${path}]:`, data);
         return data.value || [];
       } catch (err) {
         console.warn('news fetch failed', err);
@@ -588,6 +589,7 @@
     async function refreshNewsTicker() {
       const alertPromises = newsEndpoints.map(async (endpoint) => {
         const items = await fetchNews(endpoint.path);
+        console.debug(`Parsed alerts for ${endpoint.type}:`, items);
         return items.map(item => {
           if (endpoint.type === 'Forecast') {
             return {

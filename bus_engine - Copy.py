@@ -135,115 +135,65 @@ class BusSmartEngine:
     def best_route_candidates(self, s_lat, s_lon, e_lat, e_lon):
         dist = self.haversine(s_lat, s_lon, e_lat, e_lon)
         if dist < 800:
-            return {"type": "walk", "dist_m": round(dist), "minutes": max(1, round(dist / 80))}
+            return {
+                "type": "walk",
+                "dist_m": round(dist),
+                "minutes": max(1, round(dist / 80)),
+                "message": "目的地很近，建议步行。",
+            }
 
         start_cluster = self._candidate_stops(s_lat, s_lon, 400)
         end_cluster = self._candidate_stops(e_lat, e_lon, 400)
         if not start_cluster or not end_cluster:
-            return {"type": "none", "message": "范围内无可用站点。"}
+            return {"type": "none", "message": "暂无可用巴士方案。"}
 
-        # --- 1. 直达搜索 (Direct Search) ---
-        direct_options = []
+        raw_options = []
         for s_code in start_cluster:
-            s_map = {self._route_key(r): r for r in self.stop_to_routes[s_code]}
+            s_routes = {(r['ServiceNo'], r['Direction']): r for r in self.stop_to_routes.get(s_code, [])}
             for e_code in end_cluster:
-                for r_e in self.stop_to_routes[e_code]:
-                    key = self._route_key(r_e)
-                    if key in s_map:
-                        r_s = s_map[key]
-                        if int(r_e['StopSequence']) > int(r_s['StopSequence']):
-                            direct_options.append({
-                                "service": r_e['ServiceNo'],
-                                "from_name": self.stop_map[s_code]['Description'],
-                                "from_code": s_code,
-                                "to_name": self.stop_map[e_code]['Description'],
-                                "stops": int(r_e['StopSequence']) - int(r_s['StopSequence']),
-                                "dist_km": round(float(r_e['Distance']) - float(r_s['Distance']), 2)
-                            })
-        
-        if direct_options:
-            unique = {}
-            for opt in direct_options:
-                if opt['service'] not in unique or opt['stops'] < unique[opt['service']]['stops']:
-                    unique[opt['service']] = opt
+                if s_code == e_code:
+                    continue
+                for r_end in self.stop_to_routes.get(e_code, []):
+                    key = self._route_key(r_end)
+                    if key not in s_routes:
+                        continue
+                    r_start = s_routes[key]
+                    if int(r_end['StopSequence']) > int(r_start['StopSequence']):
+                        raw_options.append({
+                            "service": r_end['ServiceNo'],
+                            "direction": str(r_end.get('Direction', '1')),
+                            "from_name": self.stop_map[s_code]['Description'],
+                            "from_code": s_code,
+                            "to_name": self.stop_map[e_code]['Description'],
+                            "stops": int(r_end['StopSequence']) - int(r_start['StopSequence']),
+                            "dist_km": round(float(r_end['Distance']) - float(r_start['Distance']), 2),
+                            "start_seq": int(r_start['StopSequence']),
+                            "end_seq": int(r_end['StopSequence']),
+                        })
 
-            final_list = list(unique.values())
+        unique_results = {}
+        for opt in raw_options:
+            svc = opt['service']
+            if svc not in unique_results or opt['stops'] < unique_results[svc]['stops']:
+                unique_results[svc] = opt
 
-            # --- 核心修改：打散并注入数据 ---
-            flattened_options = []
-            for opt in final_list:
-                stop_code = str(opt['from_code']).strip()
-                svc_no = str(opt['service']).strip().upper()
-                
-                # 获取该站点的实时数据池
-                arrivals = self.get_realtime_arrivals(stop_code)
-                
-                # 弹性匹配 (36 vs 036)
-                #live = arrivals.get(svc_no) or arrivals.get(svc_no.zfill(2))
-                live = arrivals.get('36')
-                print(f"DEBUG: 站点bbbbb {svc_no} bus:{arrivals} ")
-                # 构造扁平化对象，不再使用嵌套的 'live' 字典
-                flat_opt = {
-                    "service": opt['service'],
-                    "from_name": opt['from_name'],
-                    "from_code": opt['from_code'],
-                    "to_name": opt['to_name'],
-                    "stops": opt['stops'],
-                    "dist_km": opt['dist_km'],
-                    
-                    # 💡 直接提取实时字段，确保序列化 100% 成功
-                    "live_minutes": live.get('minutes') if live else None,
-                    #"live_minutes": 100,
-                    "live_load": live.get('load') if live else "N/A",
-                    "live_is_wab": live.get('is_wab') if live else False,
-                    "live_next_minutes": live.get('next_minutes') if live else None
-                }
-                flattened_options.append(flat_opt)
+        final_options = list(unique_results.values())
+        for opt in final_options:
+            opt['live'] = self.get_realtime_v3(opt['from_code'], opt['service'])
+            opt['confidence'] = max(0, 100 - opt['stops'] * 8 - (opt['live']['minutes'] if opt.get('live') else 18))
 
-            # --- 基于实时分钟数排序 ---
-            # flattened_options.sort(key=lambda x: (
-            #     0 if x['live_minutes'] is not None else 1, 
-            #     x['live_minutes'] if x['live_minutes'] is not None else 999
-            # ))
-
-            return {
-                "status": "success",
-                "type": "bus",
-                "options": flattened_options[:3], # 取前 3 个最快的
-                "message": "找到直达方案。"
-            }
-        # --- 2. 转乘搜索 (Intersection Search) ---
-        # 逻辑：Leg1 线路经过的站点 ∩ Leg2 线路经过的站点
-        for s_code in start_cluster:
-            for r_s in self.stop_to_routes[s_code]:
-                svc_a = r_s['ServiceNo']
-                dir_a = r_s.get('Direction', '1')
-                full_route_a = self.service_to_route[(svc_a, dir_a)]
-                
-                # 遍历线路 A 的后续站点作为“潜在转乘点”
-                for node_a in full_route_a:
-                    if int(node_a['StopSequence']) <= int(r_s['StopSequence']): continue
-                    
-                    t_code = node_a['BusStopCode'] # 潜在转乘站
-                    # 检查转乘站是否有线路直达终点簇
-                    for r_t in self.stop_to_routes[t_code]:
-                        svc_b = r_t['ServiceNo']
-                        dir_b = r_t.get('Direction', '1')
-                        full_route_b = self.service_to_route[(svc_b, dir_b)]
-                        
-                        for node_b_end in full_route_b:
-                            if node_b_end['BusStopCode'] in end_cluster and int(node_b_end['StopSequence']) > int(r_t['StopSequence']):
-                                # 命中转乘点！
-                                return {
-                                    "type": "transfer",
-                                    "message": "未找到直达，建议转乘方案。",
-                                    "options": [{
-                                        "leg1": {"service": svc_a, "from_name": self.stop_map[s_code]['Description'], "transfer_at": self.stop_map[t_code]['Description']},
-                                        "leg2": {"service": svc_b, "to_name": self.stop_map[node_b_end['BusStopCode']]['Description']}
-                                    }]
-                                }
-        return {"type": "none", "message": "未找到可行方案。"}
-    
+        final_options.sort(key=lambda x: (
+            0 if x.get('live') else 1,
+            x['live']['minutes'] if x.get('live') else 999,
+            x['stops'],
+            x['confidence'],
+        ))
+        return {
+            "type": "bus",
+            "best": final_options[0] if final_options else None,
+            "options": final_options[:3],
+            "message": "已计算最佳巴士方案。" if final_options else "暂无直达巴士。",
+        }
 
     def route_summary(self, service_no):
         entries = [r for r in self.routes if r["ServiceNo"] == service_no]
