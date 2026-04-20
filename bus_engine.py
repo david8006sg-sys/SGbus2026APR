@@ -391,11 +391,11 @@ class BusSmartEngine:
 
             area_name = 'Changi'
             forecast  = forecast_lookup.get(area_name, 'N/A')
-            #return area_name, forecast
+            return area_name, forecast
 
             #eturn forecast
             # ✅ Return format that matches forecastData.value[0]
-            return {[{"area": area_name, "forecast": forecast}]}
+            #return {[{"area": area_name, "forecast": forecast}]}
 
         except Exception:
             print(f"Forecast error: {e}")
