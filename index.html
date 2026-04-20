@@ -292,7 +292,7 @@
     async function updateWeatherInfo() {
       try {
         const tempUrl = `${newsApiBase}/api/v1/news/air_temperature?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}`;
-        const forecastUrl = `${newsApiBase}/api/v1/news/2hr_forecast`;
+        const forecastUrl = `${newsApiBase}/api/v1/news/2hr_forecast?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}`;
         console.debug('updateWeatherInfo URLs:', tempUrl, forecastUrl);
 
         const [tempRes, forecastRes] = await Promise.all([

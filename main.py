@@ -137,9 +137,9 @@ async def air_temperature(lat: float = Query(...), lon: float = Query(...)):
     return {"value": [{"value": temp}]}
 
 @app.get("/api/v1/news/2hr_forecast")
-async def two_hr_forecast():
+async def two_hr_forecast(lat: float = Query(...), lon: float = Query(...)):
     """
     Return 2-hour weather forecast for Singapore regions.
     """
-    forecasts = engine.get_two_hr_forecast()
+    forecasts = engine.get_two_hr_forecast(lat, lon)
     return {"value": forecasts}
