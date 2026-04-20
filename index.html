@@ -276,7 +276,7 @@
     const newsApiBase = apiBase || '';
     const newsEndpoints = [
       { type: 'Forecast', path: '/api/v1/news/2hr_forecast' },
-      { type: 'Weather', path: '/api/v1/news/air_temperature' },
+      { type: 'Weather', path: `/api/v1/news/air_temperature?lat=${defaultLocation.lat}&lon=${defaultLocation.lon}` },
       { type: 'Traffic', path: '/api/v1/news/traffic_incidents' },
       { type: 'Train', path: '/api/v1/news/train_alerts' },
       { type: 'Facilities', path: '/api/v1/news/facilities_maintenance' },
@@ -579,7 +579,9 @@
         if (!res.ok) throw new Error('fetch failed');
         const data = await res.json();
         console.debug(`News API response [${path}]:`, data);
-        return data.value || [];
+        // Ensure we always return an array
+        const val = data.value;
+        return Array.isArray(val) ? val : (val != null ? [val] : []);
       } catch (err) {
         console.warn('news fetch failed', err);
         return [];
