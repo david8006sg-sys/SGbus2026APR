@@ -344,10 +344,11 @@ class BusSmartEngine:
         except Exception:
             return None
 
-    def get_two_hr_forecast(self):
+    def get_two_hr_forecast(self, lat=None, lon=None):
         """
         Fetch 2-hour weather forecast for Singapore regions.
-        Returns list of {'area': ..., 'forecast': ...}.
+        If lat and lon are provided, returns the forecast of the nearest region.
+        Otherwise returns list of {'area': ..., 'forecast': ...}.
         """
         # Use DATAGOVSG key or fallback to LTA_API_KEY for compatibility
         api_key = os.getenv("DATAGOVSG") or os.getenv("LTA_API_KEY")
@@ -359,7 +360,18 @@ class BusSmartEngine:
             r = requests.get("https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast", headers=headers, timeout=5)
             r.raise_for_status()
             data = r.json().get("items", [{}])[0]
-            print(f"DEBUG: get_two_hr_forecast {data} ")
-            return data.get("forecasts", [])
+            region_meta = data.get("region_metadata", [])
+            forecasts = data.get("forecasts", [])
+            # If lat/lon provided, find nearest region and return its forecast
+            if lat is not None and lon is not None and region_meta and forecasts:
+                def dist(meta):
+                    loc = meta.get("label_location", {})
+                    return self.haversine(lat, lon, loc.get("latitude"), loc.get("longitude"))
+                nearest = min(region_meta, key=dist)
+                area = nearest.get("name")
+                for f in forecasts:
+                    if f.get("area") == area:
+                        return f.get("forecast")
+            return forecasts
         except Exception:
             return []
